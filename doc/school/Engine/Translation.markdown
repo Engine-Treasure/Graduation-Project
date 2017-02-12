@@ -171,3 +171,137 @@ poor_musical_quality\_i 的 i = 1, ..., n 是 TSK 变量，取值范围是 [0, 1
 2) 如果是局部搜索策略的作曲代理之间的交换，那么 c\_h 的当前旋律将被替换为“类似：于由 c\_i 获得的最优旋律的旋律。此处，“类似”代表变异算子的一个应用。
 
 ## 五、实验分析
+
+本节将研究提出的技术在解决数字低音问题上的有效性及其效果。我们已经进行了不同的测试以评估包含了新的元启发式，是怎样影响技术的性能的。特别地，实验以不采用自适应 MA 开始，其仅包含了一个基于种群的算法和局部搜索算法。之后，向其加入更多的元启发式，基于种群的和基于局部搜索的都有，直到获得一个包含了 6 个不同元启发式的协作策略为止。最后。将提出的策略与先前应用于求解数字低音问题的方法作比较。
+
+### A. 实验配置
+
+实验就以下 13 个策略进行了比较。
+
+1) 一组包含了一个基于种群的策略和一个局部搜索策略的非自适应 MA，如下：
+
+a) GA 和 SA（GA + SA）。
+b) GA 和 TS（GA + TS）。
+c) PSO 和 SA（PSO + SA）。
+d) PSO 和 TS（PSO + TS）。
+
+2) 一组通过向先前的组合中添加新的元启发式的自适应 MA。这些策略被称为 MMC，为了区分不同的组合，我们用上标表示包含了基于种群的元启发式的策略，用下标表示应用了局部搜索元启发式的策略，如下：
+
+a) GA，PSO 和 SA（MMC G&P S）。
+b) GA，PSO 和 TS（MMC G&P T）。
+c) GA，SA 和 TS（MMC G S&T）。
+d) PSO，SA 和 TS（MMC P S&T）。
+e) GA，PSO，SA 和 SA（MMC G&P S&T）。
+f) GA，PSO，ACO，SA 和 TS（MMC G&P&A S&T）。
+g) GA，PSO，SA，TS 和 VNS（MMC G&P S&T&V）。
+h) GA，PSO，ACO，SA，TS 和 VNS（MMC G&P&A S&T&V）。
+
+3) 进化音乐作曲（EMC），是由 De Prisco 和 Zaccagnino [45] 的进化算法。据我们所知，这是唯一的一篇论文，尝试去解决类似于本文定义的数字低音问题的问题。
+
+每个策略都有 50000 个解评估，以解决实验中包含的每个实例。不使用基于时间的停止条件，我们使用解评估的数量来获得一个与其他技术做更公平的比较。使用这个方法，我们能够不依赖编程语言，或运行测试的计算机体系结构，或者程序员优化代码的能力，对结果进行比较
+
+然而，时间被视为考量性能的一个重要因素，并且，应当注意到，协调器的开销是可忽略的，协作策略的执行时间总是小于目标函数的相同数量的评估中较慢的单个元启发式的执行时间。
+
+关于执行模式，如果时间很重要，协作策略可以采用并行的方式，或者在只有单处理器的计算机上模拟并行。以下是本文采取的策略，过程很简单。我们构造了一组解算器数组，并循环地运行它们。该实现方案采用了一个异步通信模式，过程如下：解算器在目标函数的一定数量的评估期间执行。评估的数量是 [5000，5500] 间的一个随机数字，并且一个周期时间之后，更新信息。重复以上步骤，直至目标函数评价的终止条件。
+
+实验使用的在一组实例是从巴赫合唱曲中选择的，还包括了：BWV 4.8，BWV 8.6，BWV 12.7，BWV 16.6，BWV 17.7，BWV 19.7，BWV 25.6，BWV 28.6，BWV 31.9，BWV 33.6，BWV 39.7，BWV 40.6，BWV 43.11，BWV 47.5，BWV 55.5，BWV 62.6，BWV 67.7，BWV 77.6，BWV 81.7，BWV 88.7。
+
+每个单独的实例都被各策略求解了十次。结果用平均值和标准差表示（下标）。
+
+### B. 结果
+
+1) *非自适应与自适应 MA 对比：*表 8 显示了由不同策略获得的结果。这些结果以针对每个实例获得的最高适应度值的平均误差百分比来表示。为了演示由所提出的技术实现的适应性机制的有效性，我们将首先通过比较自适应与非自适应 MA 来分析结果。为了进行更严格的比较，我们使用由 García et al. [43] 提出的方法，该方法采用非参数统计测试来研究通过不同方法获得的结果间的差异。
+
+一开始，通过使用 Friedman 检验，我们评估每个元启发式获得的结果间是否存在任何显著差异。特别地，Friedman 检验表明差异是统计学上的显着差异，为 0.05 水平。然后，通过使用 Wilcoxon 的无符号秩检验将每个策略的性能与其他策略的性能进行成对比较。对于零假设，假定等效结果分布存在。另一方面，所考虑的替代假设的真实位置偏移不等于 0。当超过两项技术进行比较，需要调整获得的 p 值。我们使用 Benjamini-Hochberg 方法对它们进行调整。表 9 对获得的结果做了总结。当两个策略的性能差异明显（p 值小于 0.05）时，用“+”表征，若结果在统计学上无意义，则使用 “-”。
+
+从获得的结果中可以得到第一个结论是在提出的系统中，引入的适应与协作的效用性。特别地，所有自适应模因策略，除了两个（MMC G&P T 和MMC P S&T），结果都显著优于非自适应模因策略的结果。另外，两个不能提升非自适应策略的自适应策略的结果在统计学上等效，除了 GA + SA 在一个例子中优于 MMC G&P T。
+
+结果同时也显示了提出的技术的可扩展性。在大多数例子中，（16 分之 10），当新的元启发式加入之前的组合时，获得的结果显著地优于之前的。在剩余的 6 个例子中，结果在统计学上并没有显著的不同，但都没有更坏了。并且，可获得更好的结果的策略包含了所有 6 个单独的元启发式。特别地，该策略的结果显著地优于其他所有测试的模因策略，不管是自适应或非自适应的。
+
+2) *音乐作曲技术对比：*现在，我们将 MA 的性能与 EMC 进行比较，结果如表 8 所示。再次声明，为了进行更公平的比较，我们采用与前一节相同的方法进行分析。表 9 的最后一列表示统计检验的结果。可以看出来，所有 MA 从统计的角度来看，都优于 EMC。这些结果显示了 MA 在解决复杂问题上的能力，比如数字低音技术。
+
+### C. 解的分析
+
+分析与所获得的适合度值相关的结果能够让我们找出用于解决问题的最佳策略。然而，这不会带来对所找到的解决方案的音乐特点的洞察。为了弥补这个缺陷，我们将在这个子小节中研究巴赫合唱曲 BWV 25.6 的解。由于解空间的限制，我们将本文限制于第一个方法。
+
+图 3 表示合唱曲的五线谱（作为输入）。如果我们使用简单的随机搜索来解决该实例，我们可能可以获得如图 4 所示的解。该解决方案是在实例解析的初始步骤期间获得的，其结果乍一看，很混乱。事实上，它有许多第三节中定义的和谐错误，因此结果听起来会不和谐不令人愉悦。
+
+图 5 显示了可以在随机搜索解中隔离避免的关键错误。在随机和谐片段的前六个测量中总共出现了七个关键错误。同时，还有 12 个小问题（第三节中标为普通问题的）未显示。错误的音符用更深的颜色标出。这些错误如下：
+
+1) *连续五度：*该错误表示两个声音的变化，一个完美的五度之后跟着一个不同的完美五度。如图中的 a，d，e，f 和 g 部分。
+2) *同度：*该错误可在图中 b 和 c 部分看到，当两个音朝同一个方向一致变化时出现。
+
+选择不同的和弦，或交换每个音演奏的音符，可能可以优化解，并消除错误。然而，这么做可能会引入新的错误。图 6 显示了巴赫合唱曲 25.6 的 EMC 最优解（就适应函数而言）。其看起来比随机生成的解组织得更好，听起来也更好。随机解中出现的所有关键错误都被消除了，但又产生了新的错误，如图 7 所示。EMC 解中有两个关键错误，八个正常问题。这两个错误包括：
+
+1) *平行八度：*该错误见图 7 的 a 和 b 部分，当两个音在相同方向上从较小间隔跳跃到完美八度音程的间隔。
+
+如果使用恰当的方法，是可以消除所有的关键性错误的，和大多数非关键性错误。图 8 显示了 MMC G&P&A S&T&V 的最优解（就适应函数而言）。该解没有之前定义的任何错误。因此，它听起来比本节中所有其余解都动听。
+
+### D. 音乐品质
+
+正如介绍中所指出的，音乐作曲的品质是一个主观的判断。然而，所提供的解没有任何关键性错误。
+
+我们进行了鉴赏测试，由具有音乐背景的人聆听我们所提出的模因作曲生成的音乐。鉴赏测试的反馈表明，这些音乐作品是健全的，并遵守一般作曲规则。人类作曲家可能在创造性上表现得更好，但大多数人都惊叹于计算机居然能创造这样的曲子。
+
+我们提出的 MMC 取得的结果基本满足预期。事实上，它们代表具有显著质量和和谐的解决方案。这样的结果是可行的，因为我们提出的系统的协作功能能够消除所有关键性错误和许多和谐规则允许的错误。
+
+## 六、结论
+
+自动音乐作曲是计算机艺术的一个最重要领域之一，最近的学科研究旨在通过人工智能技术复制人类创造性的艺术设计。不同方法被应用于解决该挑战，其中，因为进化算法评估和演化给定音乐作品片段的能力，遗传音乐在这方面扮演着越来越重要的角色。然而，基于遗传技术的自动音乐作曲离完善还很遥远,因为以下两个关键因素：1）人为的再现人类作曲家的天才与能力的巨大挑战；2）对于自动生成的旋律的美学评估做一个正式的准则很困难。
+
+本文展现了进化音乐领域突破性的技术，由于对音乐的多元进化过程的模仿，组合不同模因作曲代理， 能有效地解决上述问题。事实上，所提出的问题正式将非数字五线谱作曲技术建模为基于一个创新的音乐适应函数的优化文同，该应用函数使用著名的和谐规则来使每个作曲代理以准确和正式的方式评估其作曲的技巧。该适应函数是用于实现提出的自动音乐作曲系统的自适应模因方法的关键，使得该方法能够比当前的进化方法具有更好的性能。事实上，在实验部分我们见到过了，自适应模因方法从统计的角度看，克服了所有其他在音乐作曲领域使用的混合或非混合的进化算法。而且，我们提出的自适应 MA 已经被证明在观测与监控方面比传统的进化音乐方法更好。进化音乐由一组具有音乐背景的人进行过检验，通过将由模因作曲代理生成的音乐片段与其他技术生成的音乐片段进行比价。
+
+未来，我们将扩展我们的方法，以处理不同的音乐作曲技术和美学进化算法，成为进化音乐领域最完善与高质量的方法。
+
+## 致谢
+
+E. Muñoz 对自适应模因算法的整体设计做出了贡献。G. Acampora 是本研究的主要监督者。其他作者在撰写与修改论文方面做出了重大贡献。
+
+## 参考文献
+
+[1] E. R. Miranda, “Composing music with computers,” Music Technology Series. Oxford, U.K.: Focal Press, 2001.
+[2] L. Fogel, “Evolving art,” in Proc. 1st Annu. Conf. Evol. Program., San Diego, CA, USA, 1992, pp. 183–189.
+[3] M. Dostál, “Evolutionary music composition,” in Handbook of Optimization (Intelligent Systems Reference Library), vol. 38, I. Zelinka, V. Snàˇ sel, and A. Abraham, Eds. Berlin, Germany: Springer, 2013, pp. 935–964.
+[4] X. S. Chen and Y. S. Ong, “A conceptual modeling of meme complexes in stochastic search,” IEEE Trans. Syst., Man, Cybern. C, Appl. Rev., vol. 42, no. 3, pp. 612–625, Sep. 2012.
+[5] D. W. Johnson and R. T. Johnson, Cooperation and Competition: Theory and Research. Edina, MN, USA: Interaction Book Company, 1989.
+[6] P. Moscato, “On evolution, search, optimization, GAs and martial arts: Toward memetic algorithms,” California Inst. Technol., Pasadena, CA, USA, Tech. Rep. Caltech Concurrent Comput. Prog. Rep. 826, 1989.
+[7] N. Krasnogor and J. E. Smith, “A tutorial for competent memetic algorithms: Model, taxonomy and design issues,” IEEE Trans. Evol. Comput., vol. 9, no. 5, pp. 474–488, Oct. 2005.
+[8] A. Torn and A. Zilinskas, Global Optimization (Lecture Notes in Computer Science), vol. 350. Berlin, Germany: Springer, 1989.
+[9] Y. S. Ong and A. J. Keane, “Meta-Lamarckian in memetic algorithm,” IEEE Trans. Evol. Comput., vol. 8, no. 2, pp. 99–110, Apr. 2004.
+[10] Y. S. Ong, M. H. Lim, N. Zhu, and K. W. Wong, “Classification of adaptive memetic algorithms: A comparative study,” IEEE Trans. Syst.,
+Man, Cybern. B, Cybern., vol. 36, no. 1, pp. 141–152, Feb. 2006.
+[11] L. Hiller, “Computer music,” Sci. Amer., vol. 201, no. 6, pp. 109–120, 1959.
+[12] L. Hiller and L. M. Isaacson, Experimental Music: Composition With an Electronic Computer. New York, NY, USA: McGraw-Hill, 1959.
+[13] J. A. Biles, “Evolutionary computation for musical tasks,” in Evolutionary Computer Music, E. R. Miranda and J. Al Biles, Eds. London, U.K.: Springer, 2007.
+[14] A. R. Brown, “Opportunities for evolutionary music composition,” in Proc. Aust. Comput. Music Conf., Melbourne, VIC, Australia, 2002, pp. 27–34.
+[15] R. Waschka, II, “Avoiding the fitness ‘bottleneck’: Using genetic algo- rithms to compose orchestral music,” in Proc. Int. Computer Music Conf., San Francisco, CA, USA, 1999, pp. 201–203.
+[16] R. Waschka, II, “Composing with genetic algorithms: GenDash,” Evolutionary Computer Music, E. Miranda and J. Biles, Eds. London, U.K.: Springer, 2007, pp. 117–136.
+[17] B. L. Jacob, “Composing with genetic algorithms,” in Proc. Int. Comput. Music Conf., Banff, AB, Canada, 1995, pp. 452–455.
+[18] B. L. Jacob, “Algorithmic composition as a model of creativity,” Organ. Sound, vol. 1, no. 3, pp. 157–165, 1996.
+[19] J. H. Moore. (1994). GAMusic: Genetic Algorithm to Evolve Musical Melodies. [Online]. Available: http://www.cs.cmu.edu/afs/cs/project/ ai-repository/ai/areas/genetic/ga/systems/gamusic/0.html
+[20] B. Johanson and R. Poli, “GP-music: An interactive genetic pro- gramming system for music generation with automated fitness raters,” in Proc. 3rd Int. Conf. Genet. Program., Helsinki, Finland, 1998, pp. 181–186.
+[21] L. Spector and A. Alpern, “Criticism, culture, and the automatic gen- eration of artworks,” in Proc. 12th Nat. Conf. Artif. Intell., vol. 1. Menlo Park, CA, USA, 1994, pp. 3–8.
+[22] L. Spector and A. Alpern, “Induction and recapitulation of deep musical structure,” in Proc. IFCAI 1995 Workshop Artif. Intell. Music, Montreal, QC, Canada, pp. 41–48.
+[23] J. A. Biles, GenJam: A Genetic Algorithm for Generating Jazz Solos. Ann Arbor, MI, USA: Univ. Michigan Library, 1994.
+[24] J. A. Biles, “Interactive GenJam: Integrating real-time performance with a genetic algorithm,” in Proc. 1998 Int. Comput. Music Conf., San Francisco, CA, USA.
+[25] J. A. Biles, “Life with GenJam: Interacting with a musical IGA,” in Proc. 1999 IEEE Int. Conf. Syst. Man Cybern., Tokyo, Japan, pp. 652–656.
+[26] J. A. Biles, “GenJam: Evolution of a jazz improviser,” in Creative Evolutionary Systems, P. Bentley and D. Corne, Eds. San Francisco, CA, USA: Morgan Kaufmann Publishers Inc., pp. 165–187, 2002. [27] K. Thywissen, “GeNotator: An environment for investigating the application of genetic algorithms in computer assisted composition,” in Proc. 1996 Int. Comput. Music Conf., San Francisco, CA, USA, pp. 274–277.
+[28] P. M. Gibson and J. A. Byrne, “NEUROGEN: Musical composition using genetic algorithms and cooperating neural networks,” in Proc. 2nd 1994 Int. Conf. Artif. Neural Netw., Bournemouth, U.K., 1991, pp. 309–313.
+[29] T. Unemi, “A design of genetic encoding for breeding short musical
+pieces,” in Proc. Workshop Artif. Life Models Music. Appl. II Search Music. Creativity, Sydney, NSW, Australia, 2002, pp. 25–29.
+[30] T. Unemi, “SBEAT3: A tool for multi-part music composition by simulated breeding,” in Proc. 8th Int. Conf. Artif. Life, Cambridge, MA, USA, 2003, pp. 410–413.
+[31] D. Ralley, “Genetic algorithms as a tool for melodic development,” in Proc. Int. Comput. Music Conf., Banff, AB, Canada, 1995, pp. 501–502.
+[32] D. Cope, Experiments in Musical Intelligence (Computer Music and Digital Audio Series 12). Madison, WI, USA: A-R Editions, 1996.
+[33] D. Cope, The Algorithmic Composer (Computer Music and Digital Audio Series 16). Madison, WI, USA: A-R Editions, 2000.
+[34] D. Cope, Virtual Music: Computer Synthesis of Musical Style. Cambridge, MA, USA: MIT Press, 2004.
+[35] G. Loy, Musimathics: The Mathematical Foundations of Music, vol. 1. Cambridge, MA, USA: MIT Press, 2006.
+[36] W. Piston and M. DeVoto, Harmony. New York, NY, USA: Norton, 1987.
+[37] G. Acampora, J. M. Cadenas, V. Loia, and E. M. Ballester, “Achieving memetic adaptability by means of agent-based machine learning,” IEEE Trans. Ind. Informat., vol. 7, no. 4, pp. 557–569, Nov. 2011. [38] G. Acampora, J. M. Cadenas, V. Loia, and E. M. Ballester, “A multi-agent memetic system for human-based knowledge selection,” IEEE Trans. Syst., Man, Cybern. A, Syst., Humans, vol. 41, no. 5, pp. 946–960, Sep. 2011.
+[39] J. M. Cadenas, M. C. Garrido, and E. M. Ballester, “Using machine learning in a cooperative hybrid parallel strategy of metaheuristics,” Inf. Sci., vol. 179, no. 19, pp. 3255–3267, 2009.
+[40] P. P. Bonissone, J. M. Cadenas, M. C. Garrido, and R. A. Díaz-Valladares, “A fuzzy random forest,” Int. J. Approx. Reason., vol. 51, no. 7, pp. 729–747, 2010.
+[41] T. G. Crainic, M. Gendreau, P. Hansen, and N. Mladenovic, “Cooperative parallel variable neighborhood search for the p-median,” J. Heuristics, vol. 10, no. 3, pp. 293–314, 2004.
+[42] D. Henderson, S. H. Jacobson, and A. W. Johnson, “The theory and practice of simulated annealing,” in Handbook of Metaheuristics, F. Glover and G. A. Kochenberger, Eds. Boston, MA, USA: Kluwer Academic, 2003.
+[43] S. García, A. Fernández, J. Luengo, and F. Herrera, “A study statistical of techniques and performance measures for genetics-based machine learning: Accuracy and interpretability,” Soft Comput., vol. 13, no. 10, pp. 959–977, 2009.
+[44] A. Globerson and T. Jaakkola, “Fixing max-product: Convergent message passing algorithms for MAP LP-relaxations,” in Advances in Neural Information Processing Systems. Cambridge, MA, USA: MIT Press, 2007, pp. 553–560.
+[45] R. De Prisco and R. Zaccagnino, “An evolutionary music composer algorithm for bass harmonization,” in Applications of Evolutionary Computing (Lecture Notes in Computer Science), vol. 5484. Berlin, Germany: Springer, 2009, pp. 567–572.
+[46] S. Kostka and D. Payne, Tonal Harmony With an Introduction to Twentieth Century Music. New York, NY, USA: McGraw-Hill, 2008.

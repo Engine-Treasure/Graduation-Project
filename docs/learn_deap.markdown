@@ -1,6 +1,6 @@
 # DEAP 笔记
 
-1. 选择适合的类型 (`type)` with `creator`:
+1. 选择适合的类型 (`type`) with `creator`:
 
 ```python
 creator.create(name, base_cls, kwargs)

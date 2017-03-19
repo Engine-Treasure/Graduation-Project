@@ -18,14 +18,35 @@ DURATION = [1, 0.5, 0.25, 0.125, 0.0625, 0.03125, 0.015625]  # 时值编码, 最
 # 暂定为 (1.0,), 表示最大化协和度
 creator.create("Fitness", base.Fitness, weights=(1.0,))
 
+
+# [1, 5, 4] - C5 (scientific name) whose duration is 1/4
+creator.create("Note", list)
+
+
 # 以小节为个体, list 形式表示
 # meter: (4, 4), 四四拍, 前一个 4 表示以 4 分音符为一拍, 后一个 4 表示 4 拍为一个小节
-# [((1, 5, 4), (1.5, 5, 4), (3, 5, 4), (5, 5, 4))]
+# [[1, 5, 4], [1.5, 5, 4], [3, 5, 4], [5, 5, 4]]
 creator.create("Individual", list, fitness=creator.Fitness, meter=tuple)
+
+
+def get_note():
+    note = random.choice(NOTES)
+
 
 
 def initial_individual():
     pass
+
+
+def make_wav():
+    # 生成 wav 音乐
+    pass
+
+
+def evaluate(individual):
+    # Do some hard computing on the individual
+    # Multi dimension
+    return 1
 
 
 toolbox = base.Toolbox()
@@ -34,6 +55,7 @@ toolbox = base.Toolbox()
 # 注: tools.initRepeat(container, generator_func, repeat_times)
 
 ind1 = toolbox.gen_individual()
+ind1.fitness.values = evaluate(ind1)
 a = len(ind1) - 1
 song = [("".join(ind1[0:a]), ind1[a])] * 10
 print(song)

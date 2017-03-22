@@ -15,6 +15,7 @@ from mingus.containers import Bar, Note, Track
 from mingus.midi import midi_file_out
 
 from util import get_geometric_progression_of_2
+from config import notes_frequencies
 
 VELOCITY = {16, 33, 49, 64, 80, 96, 112, 126}
 
@@ -35,7 +36,8 @@ def gen_note(min=0, max=107):
     :param max: maximum scientific note name
     :return: mingus.containers.Note
     '''
-    return Note().from_int(np.random.choice(range(min, max + 1)))
+    return Note().from_int(
+        np.random.choice(range(min, max + 1), p=notes_frequencies))
 
 
 def gen_duration(min=64, max=1):
@@ -55,7 +57,6 @@ def gen_bar(key="C", meter=(4, 4)):
     return bar
 
 
-
 def evalute_bar(bar):
     pass
 
@@ -64,7 +65,6 @@ def evaluate_track(individual):
     # Do some hard computing on the individual
     # Multi dimension
     return 1
-
 
 
 def gen_track(bars):
@@ -82,9 +82,8 @@ toolbox.register("note", gen_note, min=9, max=96)  # 钢琴共 88 键, A0 ~ C8
 toolbox.register("bar", gen_bar, key="C", meter=(4, 4))
 toolbox.register("track", gen_track)
 
-bars = [toolbox.bar() for i in range(1)]
+bars = [toolbox.bar() for i in range(16)]
 track = toolbox.track(bars)
 lp.to_pdf(lp.from_Track(track), "1.pdf")
 
-
-midi_file_out.write_Track("1.mid", track)
+midi_file_out.write_Track("1.random_without_notes_frequencies.mid", track)

@@ -77,18 +77,71 @@ def gen_track(bars):
     return track
 
 
-def compute_intervals(note1, note2):
-    i = intervals.determine(note1, note2)
-    if "unison" in i: # 纯一度, 纯八度
-        pass
-    elif i in ("perfect fifth", "perfect fourth"):
-        pass
-    elif i in ("major third", "minor third", "major sixth", "minor sixth"):
-        pass
-    elif i in ("major second", "minor second", "major seventh", "minor seventh"):
-        pass
+def grade_intervals(note1, note2):
+    """
+    对音程打分 -
+    纯一度或纯八度, 为极协和音程,
+    纯四度或纯五度, 协和音程,
+    大三度, 小三度, 大六度, 小六度, 不完全协和音程
+    以上属于相对协和音程
+    大二度, 小二度, 大七度, 小七度, 不协和音程
+    其他为极不协和音程
+    """
+    itv = intervals.determine(note1, note2)
+    if "unison" in itv:  # 纯一度, 纯八度
+        return 5
+    elif itv in ("perfect fifth", "perfect fourth"):
+        return 4
+    elif itv in ("major third", "minor third", "major sixth", "minor sixth"):
+        return 3
+    elif itv in ("major second", "minor second", "major seventh", "minor seventh"):
+        return -1
     else:
-        pass
+        return -3
+
+
+def grade_octave(octave1, octave2):
+    """
+    对八度打分 - 度数小于在一个八度内的, 打 1 分； 否则 0 分
+    """
+    if abs(octave1 - octave2) < 2:
+        return 1
+    else:
+        return 0
+
+
+def grade_duration(duration1, duration2):
+    """
+    对时值打分 - 时值变化剧烈 (超过 4 倍), 0 分
+    """
+    if max(duration1 / duration2, duration2 / duration1) > 4:
+        return 0
+    else:
+        return 1
+
+
+def grade_pitch_change(bar):
+    """
+    对整体音高变化的打分 - 单调变化或不变的音高, 低分
+    """
+    # todo
+    pass
+
+
+def grade_duration_change(bar):
+    """
+    对整体时值变化的打分 - 单调的时值, 缺少节奏感, 低分
+    """
+    # todo
+    pass
+
+
+def grade_internal_chords(bar):
+    """
+    对调内三/七和弦的打分
+    """
+    # todo
+    pass
 
 
 def evalute_bar(bar):

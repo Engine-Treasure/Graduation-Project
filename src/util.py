@@ -21,5 +21,5 @@ def get_geometric_progression_with_length(start, a, length):
     return [start * a ** (n - 1) for n in range(1, length + 1)]
 
 if __name__ == '__main__':
-    print(get_geometric_progression_of_2(1, 64))
+    print(get_geometric_progression_of_2(2, 32))
     print(get_geometric_progression_with_length(1, 2, 10))

@@ -43,7 +43,7 @@ def gen_pitch(min=0, max=107):
     '''
     return Note().from_int(
         np.random.choice(range(min, max + 1), p=pitch_frequencies))
-        # np.random.choice(range(min, max + 1)))
+    # np.random.choice(range(min, max + 1)))
 
 
 def gen_duration(min=32, max=1):
@@ -91,16 +91,16 @@ def grade_intervals(notes_pair):
     """
     itv = intervals.determine(*notes_pair)
     if "unison" in itv:  # 纯一度, 纯八度
-        return 7
-    elif itv in ("perfect fifth", "perfect fourth"):
         return 10
+    elif itv in ("perfect fifth", "perfect fourth"):
+        return 8
     elif itv in ("major third", "minor third", "major sixth", "minor sixth"):
-        return 7
+        return 6
     elif itv in ("major second", "minor second", "major seventh",
                  "minor seventh"):
-        return 1
+        return 3
     else:
-        return -1
+        return 0
 
 
 def grade_octave(octaves_pair):
@@ -110,7 +110,7 @@ def grade_octave(octaves_pair):
     if abs(octaves_pair[0] - octaves_pair[1]) < 2:
         return 1
     else:
-        return -1
+        return 0
 
 
 def grade_duration(durations_pair):
@@ -119,7 +119,7 @@ def grade_duration(durations_pair):
     """
     duration1, duration2 = durations_pair
     if max(duration1 / duration2, duration2 / duration1) > 4:
-        return -1
+        return 0
     else:
         return 1
 
@@ -131,7 +131,7 @@ def grade_pitch_change(bar):
     # todo
     pitches = [int(note[2][0]) for note in bar]
     print(pitches)
-    return 0 if util.is_monotone(pitches) else 10
+    return 0 if util.is_monotone(pitches) else 1
 
 
 def grade_duration_change(bar):
@@ -141,7 +141,7 @@ def grade_duration_change(bar):
     # todo
     durations = [note[1] for note in bar]
     print(durations)
-    return 0 if util.is_monotone(durations) else 10
+    return 0 if util.is_monotone(durations) else 1
 
 
 def grade_internal_chords(bar):
@@ -152,31 +152,39 @@ def grade_internal_chords(bar):
     pass
 
 
+def grade_markov(bar):
+    # todo
+    pass
+
+
 def evalute_bar(bar):
     # todo - kinds of evalute ways
     names, octaves, durations = util.get_names_octaves_durations(bar)
+
+    # 可能生成了单音符的小节, 直接返回 1 分, 不做评价
     if len(names) == 1:
-        return 0
-    # print(names, octaves, durations)
+        return 1.0
+    # 音名, 八度, 时值的组合, 每一对都是前后组合, 有别于 Python 自带的 Combinations
     name_combinations, octave_combinations, duration_combinations = map(
         util.get_combination_order2, (names, octaves, durations))
 
+    # 以下打分是针对每一对组合的
     grade_of_intervals = map(grade_intervals, name_combinations)
     grade_of_octave = map(grade_octave, octave_combinations)
     grade_of_duration = map(grade_duration, duration_combinations)
 
-    # print(grade_of_intervals, grade_of_octave, grade_of_duration)
-
-    grade_of_intervals = sum(grade_of_octave) / 5 / len(grade_of_intervals)
+    # 评分求和, 并标准化为 0~1.0, scaling
+    grade_of_intervals = sum(grade_of_octave) / 10 / len(grade_of_intervals)
     grade_of_octave = sum(grade_of_octave) / len(grade_of_octave)
     grade_of_duration = sum(grade_of_duration) / len(grade_of_duration)
 
-    print(bar)
+    # 以下打分是针对整个小节的, 不必求和
     grade_of_pitch_change = grade_pitch_change(bar)
     grade_of_duration_change = grade_duration_change(bar)
 
+    # simply mean
     return sum((grade_of_intervals, grade_of_octave, grade_of_duration,
-                grade_of_pitch_change, grade_of_duration_change))
+                grade_of_pitch_change, grade_of_duration_change)) / 5.0
     # grade_of_duration_change
     # grade_of_internal_chords
     # grade_of_pitch_change
@@ -196,33 +204,35 @@ toolbox.register("note", gen_pitch, min=9, max=96)  # 钢琴共 88 键, A0 ~ C8
 toolbox.register("bar", gen_bar, key="C", meter=(4, 4))
 toolbox.register("track", gen_track)
 
-bars = [toolbox.bar() for i in range(100)]
+if __name__ == '__main__':
 
-print("E")
-bars_with_grade = {bar: evalute_bar(bar) for bar in bars}
-bar_rank = OrderedDict(
-    sorted(bars_with_grade.iteritems(), key=lambda t: t[1], reverse=True))
-print(len(bar_rank))
-print(bar_rank.values())
+    bars = [toolbox.bar() for i in range(100)]
 
-top10_bars = islice(bar_rank.keys(), 10)
-last10_bars = islice(bar_rank.keys(), 90, 100)
+    print("E")
+    bars_with_grade = {bar: evalute_bar(bar) for bar in bars}
+    bar_rank = OrderedDict(
+        sorted(bars_with_grade.iteritems(), key=lambda t: t[1], reverse=True))
+    print(len(bar_rank))
+    print(bar_rank.values())
 
-for k, v in bar_rank.iteritems():
-    print(v, k)
+    top10_bars = islice(bar_rank.keys(), 10)
+    last10_bars = islice(bar_rank.keys(), 90, 100)
 
-track_top = toolbox.track(top10_bars)
-track_last = toolbox.track(last10_bars)
+    for k, v in bar_rank.iteritems():
+        print(v, k)
 
-lp.to_pdf(lp.from_Track(track_top), "top.pdf")
+    track_top = toolbox.track(top10_bars)
+    track_last = toolbox.track(last10_bars)
 
-midi_file_out.write_Track("top.mid", track_top)
+    lp.to_pdf(lp.from_Track(track_top), "top.pdf")
 
-lp.to_pdf(lp.from_Track(track_last), "last.pdf")
+    midi_file_out.write_Track("top.mid", track_top)
 
-midi_file_out.write_Track("last.mid", track_last)
+    lp.to_pdf(lp.from_Track(track_last), "last.pdf")
 
-# track = toolbox.track(bars)
-# lp.to_pdf(lp.from_Track(track), "1.pdf")
-#
-# midi_file_out.write_Track("1.mid", track)
+    midi_file_out.write_Track("last.mid", track_last)
+
+    # track = toolbox.track(bars)
+    # lp.to_pdf(lp.from_Track(track), "1.pdf")
+    #
+    # midi_file_out.write_Track("1.mid", track)

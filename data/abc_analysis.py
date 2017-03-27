@@ -9,7 +9,7 @@ from fractions import Fraction
 from collections import Counter, OrderedDict
 
 import numpy as np
-import joblib
+# import joblib
 
 import src.abcparse as abcparse
 
@@ -17,9 +17,9 @@ import src.abcparse as abcparse
 # if not os.path.exists("ABCs"):
 #     os.makedirs("ABCs")
 
-# with open("session_data_clean.txt") as f:
+# with open("sessions_data_clean.txt") as f:
 #     abcs = f.read().split("\n\n")
-
+#
 # for i, abc in enumerate(abcs):
 #     with open(os.path.join("ABCs", str(i) + ".abc"), "w") as f:
 #         f.write(abc + "\n\n")
@@ -54,6 +54,8 @@ def compute_statistics(abc_file):
         names, durations = zip(*notes)
         names = [n.rstrip("*") for n in names]
 
+        notes = (name + "_" + str(duration) for name, duration in zip(names, durations))
+
         names_2 = get_N_grams(names, 2)
         names_3 = get_N_grams(names, 3)
         names_4 = get_N_grams(names, 4)
@@ -65,17 +67,17 @@ def compute_statistics(abc_file):
             km: {
                 "name": Counter(names),
                 "duration": Counter(durations),
-                "names_2": names_2,
-                "names_3": names_3,
-                "names_4": names_4,
-                "duration_2": duration_2,
-                "duration_3": duration_3,
-                "duration_4": duration_4,
-
+                "note": Counter(notes),
+                "names_2": Counter(names_2),
+                "names_3": Counter(names_3),
+                "names_4": Counter(names_4),
+                "duration_2": Counter(duration_2),
+                "duration_3": Counter(duration_3),
+                "duration_4": Counter(duration_4),
             }
         }
     except Exception as e:
-        pass
+        raise e
 
 
 def concat_statistics(a, b):
@@ -91,13 +93,19 @@ def concat_statistics(a, b):
     return a
 
 
-def classify_key_meter(statistics):
+def classify(statistics):
+    on_all = {}
     on_key = {}
     on_meter = {}
 
     for km, nd in statistics.iteritems():
-        key, meter = km.split("_")
+        for k, v in nd.iteritems():
+            if k in on_all.keys():
+                on_all[k].update(v)
+            else:
+                on_all[k] = v
 
+        key, meter = km.split("_")
         if key in on_key.keys():
             for k, v in nd.iteritems():
                 on_key[key][k].update(v)
@@ -110,21 +118,26 @@ def classify_key_meter(statistics):
         else:
             on_meter[meter] = nd
 
-    return on_key, on_meter
+    return on_all, on_key, on_meter
 
 
-statistics = joblib.Parallel(n_jobs=1, verbose=0)(  # n_jobs > 1, has problem
-    joblib.delayed(compute_statistics)(abc_file)
-    for abc_file in glob.glob(os.path.join("ABCs", "999*.abc")))
+# statistics = joblib.Parallel(n_jobs=1, verbose=0)(  # n_jobs > 1, has problem
+#     joblib.delayed(compute_statistics)(abc_file)
+#     for abc_file in glob.glob(os.path.join("ABCs", "999*.abc")))
 
-# statistics = (compute_statistics(abc_file)
-#               for abc_file in glob.glob(os.path.join("ABCs", "999*.abc")))
+statistics = (compute_statistics(abc_file)
+              for abc_file in glob.iglob(os.path.join("ABCs", "999*.abc")))
 statistics = (s for s in statistics if s is not None)  # eliminate None values
 
 initial_d = {"C_4/4": {"name": Counter({}), "duration": Counter({})}}
 statistics = reduce(concat_statistics, statistics, initial_d)
-print(statistics.values())
 
 keys, meters = zip(*map(lambda s: s.split("_"), statistics.keys()))
 
-statistics_on_key, statistics_on_meter = classify_key_meter(statistics)
+
+statistics_all, statistics_key, statistics_meter = classify(statistics)
+
+print(statistics_all)
+print(statistics_key)
+print(statistics_meter)
+

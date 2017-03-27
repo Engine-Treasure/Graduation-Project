@@ -254,6 +254,8 @@ triptab = None
 nunit = "1/4"
 unit = 4
 song = []
+piano = []
+global_sharps_flats = {}
 
 
 def parse_abc(fn):
@@ -265,44 +267,56 @@ def parse_abc(fn):
     global piano
     global global_sharps_flats
     global song
-    with open(fn) as f:
-        for l in f:
-            if l[0] in ('w', 'W', '%'): continue
-            if 'L:' in l:
-                nunit = l.split(':')[1].strip()
-                unit = int(l.split('/')[1])
-            if 'M:' in l:
-                meter = l.split(':')[1].strip()
-                if meter == 'C': meter = "4/4"
-            if 'K:' in l:
-                key = l.split(':')[1].strip().replace('maj', '').replace('min', 'm')
-                global_sharps_flats = {}
-                fsnum = 0
-                for x, y, z in key_sigs:
-                    if x.lower() == key.lower() or y.lower() == key.lower():
-                        fsnum = z
-                if fsnum < 0:
-                    fsrange = range(fsnum, 0)
-                    sign = -1
-                    piano = piano_f
-                else:
-                    fsrange = range(1, fsnum + 1)
-                    sign = 1
-                    piano = piano_s
-                for fs in fsrange:
-                    for oct in range(9):
-                        global_sharps_flats[
-                            '%s%u' % (flats_and_sharps[fs], oct)] = sign
-                # print global_sharps_flats
-                measure_sharps_flats = global_sharps_flats.copy()
-            if l.strip() == '':
-                break
-            if not (l[0].isalpha() and l[1] == ':'):
-                if not triptab: triptab = mk_triptab(meter)
-                l2 = simp_line(list(l))
-                parse_line(l2)
+    try:
+        with open(fn) as f:
+            for l in f:
+                if l[0] in ('w', 'W', '%'): continue
+                if 'L:' in l:
+                    nunit = l.split(':')[1].strip()
+                    unit = int(l.split('/')[1])
+                if 'M:' in l:
+                    meter = l.split(':')[1].strip()
+                    if meter == 'C':
+                        meter = "4/4"
+                if 'K:' in l:
+                    key = l.split(':')[1].strip().replace('maj', '').replace('min', 'm')
+                    fsnum = 0
+                    for x, y, z in key_sigs:
+                        if x.lower() == key.lower() or y.lower() == key.lower():
+                            fsnum = z
+                    if fsnum < 0:
+                        fsrange = range(fsnum, 0)
+                        sign = -1
+                        piano = piano_f
+                    else:
+                        fsrange = range(1, fsnum + 1)
+                        sign = 1
+                        piano = piano_s
+                    for fs in fsrange:
+                        for oct in range(9):
+                            global_sharps_flats[
+                                '%s%u' % (flats_and_sharps[fs], oct)] = sign
+                    # print global_sharps_flats
+                    measure_sharps_flats = global_sharps_flats.copy()
+                if l.strip() == '':
+                    break
+                if not (l[0].isalpha() and l[1] == ':'):
+                    if not triptab: triptab = mk_triptab(meter)
+                    l2 = simp_line(list(l))
+                    parse_line(l2)
 
-        if do_repeat:
-            song = song + second_ver
+            if do_repeat:
+                song = song + second_ver
 
-        return song
+            return key, meter, song
+    except Exception as e:
+        pass
+    finally:
+        meter = "4/4"
+        triptab = None
+        nunit = "1/4"
+        unit = 4
+        song = []
+        piano = []
+        global_sharps_flats = {}
+

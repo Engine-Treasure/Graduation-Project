@@ -1,37 +1,38 @@
 # -*- coding: utf-8 -*-
 from __future__ import division
 
-import os
-import json
 import glob
+import json
+import os
+from collections import Counter
 from copy import deepcopy
 from fractions import Fraction
-from collections import Counter, OrderedDict
 
-import numpy as np
-# import joblib
+from send_email import send_email
+try:
+    import abcparse
+except:
+    import src.abcparse as abcparse
 
-import src.abcparse as abcparse
 
+if not os.path.exists("ABCs"):
+    os.makedirs("ABCs")
 
-# if not os.path.exists("ABCs"):
-#     os.makedirs("ABCs")
+with open("sessions_data_clean.txt") as f:
+    abcs = f.read().split("\n\n")
 
-# with open("sessions_data_clean.txt") as f:
-#     abcs = f.read().split("\n\n")
-#
-# for i, abc in enumerate(abcs):
-#     with open(os.path.join("ABCs", str(i) + ".abc"), "w") as f:
-#         f.write(abc + "\n\n")
+for i, abc in enumerate(abcs):
+    with open(os.path.join("ABCs", str(i) + ".abc"), "w") as f:
+        f.write(abc + "\n\n")
 
 
 def get_N_grams(_input, n):
     output = dict()  # store n-tuple
     # str or float
-    if isinstance(_input[0], float):
-        _input = [
-            str(Fraction(1 / ele).limit_denominator(32)) for ele in _input
-            ]
+    # if isinstance(_input[0], float):
+    #     _input = [
+    #         str(Fraction(1 / ele).limit_denominator(32)) for ele in _input
+    #         ]
     for i in range(len(_input) - n + 1):
         n_gram = ' '.join(_input[i: i + n])  # 相邻的单词构成一个n元组
         if n_gram in output:  # 统计n元组的词频
@@ -43,7 +44,7 @@ def get_N_grams(_input, n):
 
 def compute_statistics(abc_file):
     """
-
+    Compute statistics: note, names(pitch), duration
     :param abc_file: str - path to a abc file
     :return:
     """
@@ -52,9 +53,14 @@ def compute_statistics(abc_file):
         km = key + "_" + meter
 
         names, durations = zip(*notes)
-        names = [n.rstrip("*") for n in names]
+        names = [n.rstrip("*") for n in names]  # strip louder symbol `*`
 
-        notes = (name + "_" + str(duration) for name, duration in zip(names, durations))
+        # convert duration to fraction form
+        durations = [  # denominator - 分母
+            str(Fraction(1 / ele).limit_denominator(32)) for ele in durations]
+
+        notes = (
+            name + "_" + duration for name, duration in zip(names, durations))
 
         names_2 = get_N_grams(names, 2)
         names_3 = get_N_grams(names, 3)
@@ -68,20 +74,19 @@ def compute_statistics(abc_file):
                 "name": Counter(names),
                 "duration": Counter(durations),
                 "note": Counter(notes),
-                "names_2": Counter(names_2),
-                "names_3": Counter(names_3),
-                "names_4": Counter(names_4),
+                "name_2": Counter(names_2),
+                "name_3": Counter(names_3),
+                "name_4": Counter(names_4),
                 "duration_2": Counter(duration_2),
                 "duration_3": Counter(duration_3),
                 "duration_4": Counter(duration_4),
             }
         }
     except Exception as e:
-        raise e
+        pass
 
 
 def concat_statistics(a, b):
-    # d = deepcopy(a)  # The previous reduce result is a.
 
     for km, nd in b.iteritems():
         if km in a.keys():
@@ -94,50 +99,57 @@ def concat_statistics(a, b):
 
 
 def classify(statistics):
-    on_all = {}
+    flat = {}
     on_key = {}
     on_meter = {}
 
     for km, nd in statistics.iteritems():
-        for k, v in nd.iteritems():
-            if k in on_all.keys():
-                on_all[k].update(v)
-            else:
-                on_all[k] = v
-
         key, meter = km.split("_")
+
+        for k, v in nd.iteritems():
+            if k in flat.keys():
+                flat[k].update(v)
+            else:
+                flat[k] = deepcopy(v)  # !!! 如果不是深度复制, 会修改 statistics
+
         if key in on_key.keys():
             for k, v in nd.iteritems():
                 on_key[key][k].update(v)
         else:
-            on_key[key] = nd
+            on_key[key] = deepcopy(nd)
 
         if meter in on_meter.keys():
             for k, v in nd.iteritems():
                 on_meter[meter][k].update(v)
         else:
-            on_meter[meter] = nd
+            on_meter[meter] = deepcopy(nd)
 
-    return on_all, on_key, on_meter
+    return flat, on_key, on_meter
 
 
+# import joblib
 # statistics = joblib.Parallel(n_jobs=1, verbose=0)(  # n_jobs > 1, has problem
 #     joblib.delayed(compute_statistics)(abc_file)
 #     for abc_file in glob.glob(os.path.join("ABCs", "999*.abc")))
 
 statistics = (compute_statistics(abc_file)
-              for abc_file in glob.iglob(os.path.join("ABCs", "999*.abc")))
-statistics = (s for s in statistics if s is not None)  # eliminate None values
+              for abc_file in glob.iglob(os.path.join("ABCs", "99*.abc")))
+statistics = (s for s in statistics if s is not None)  # eliminate None value
 
-initial_d = {"C_4/4": {"name": Counter({}), "duration": Counter({})}}
-statistics = reduce(concat_statistics, statistics, initial_d)
+statistics = reduce(concat_statistics, statistics)
 
-keys, meters = zip(*map(lambda s: s.split("_"), statistics.keys()))
+statistics_flat, statistics_key, statistics_meter = classify(statistics)
 
+with open("abc_result.txt", "w") as f:
+    f.write(json.dumps(statistics))
 
-statistics_all, statistics_key, statistics_meter = classify(statistics)
+with open("abc_result_flat.txt", "w") as f:
+    f.write(json.dumps(statistics_flat))
 
-print(statistics_all)
-print(statistics_key)
-print(statistics_meter)
+with open("abc_result_key.txt", "w") as f:
+    f.write(json.dumps(statistics_key))
 
+with open("abc_result_meter.txt", "w") as f:
+    f.write(json.dumps(statistics_meter))
+
+send_email()

@@ -8,10 +8,12 @@ from collections import Counter
 from copy import deepcopy
 from fractions import Fraction
 
+import numpy as np
+
 from send_email import send_email
 try:
     import abcparse
-except:
+except ImportError:
     import src.abcparse as abcparse
 
 

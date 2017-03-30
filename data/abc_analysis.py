@@ -8,14 +8,12 @@ from collections import Counter
 from copy import deepcopy
 from fractions import Fraction
 
-import numpy as np
-
 from send_email import send_email
+
 try:
     import abcparse
 except ImportError:
     import src.abcparse as abcparse
-
 
 if not os.path.exists("ABCs"):
     os.makedirs("ABCs")
@@ -23,8 +21,15 @@ if not os.path.exists("ABCs"):
 with open("sessions_data_clean.txt") as f:
     abcs = f.read().split("\n\n")
 
+n_subdirs = len(abcs) // 5000
+for i in range(n_subdirs + 1):
+    if not os.path.exists(os.path.join("ABCs", str(i))):
+        os.makedirs(os.path.join("ABCs", str(i)))
+
 for i, abc in enumerate(abcs):
-    with open(os.path.join("ABCs", str(i) + ".abc"), "w") as f:
+    subdir = i // 5000
+
+    with open(os.path.join("ABCs", str(subdir), str(i) + ".abc"), "w") as f:
         f.write(abc + "\n\n")
 
 
@@ -59,7 +64,8 @@ def compute_statistics(abc_file):
 
         # convert duration to fraction form
         durations = [  # denominator - 分母
-            str(Fraction(1 / ele).limit_denominator(32)) for ele in durations]
+                       str(Fraction(1 / ele).limit_denominator(32)) for ele in
+                       durations]
 
         notes = (
             name + "_" + duration for name, duration in zip(names, durations))
@@ -89,7 +95,6 @@ def compute_statistics(abc_file):
 
 
 def concat_statistics(a, b):
-
     for km, nd in b.iteritems():
         if km in a.keys():
             for k, v in nd.iteritems():
@@ -134,24 +139,33 @@ def classify(statistics):
 #     joblib.delayed(compute_statistics)(abc_file)
 #     for abc_file in glob.glob(os.path.join("ABCs", "999*.abc")))
 
-statistics = (compute_statistics(abc_file)
-              for abc_file in glob.iglob(os.path.join("ABCs", "99*.abc")))
-statistics = (s for s in statistics if s is not None)  # eliminate None value
 
-statistics = reduce(concat_statistics, statistics)
+subdirs = os.listdir("ABCs")
 
-statistics_flat, statistics_key, statistics_meter = classify(statistics)
+for sd in subdirs:
+    statistics = (compute_statistics(abc_file)
+                  for abc_file in
+                  glob.iglob(os.path.join("ABCs", sd, "*.abc")))
 
-with open("abc_result.txt", "w") as f:
-    f.write(json.dumps(statistics))
+    statistics = (s for s in statistics if
+                  s is not None)  # eliminate None value
 
-with open("abc_result_flat.txt", "w") as f:
-    f.write(json.dumps(statistics_flat))
+    statistics = reduce(concat_statistics, statistics)
 
-with open("abc_result_key.txt", "w") as f:
-    f.write(json.dumps(statistics_key))
+    with open("abc_result.txt" + subdir, "w") as f:
+        f.write(json.dumps(statistics))
 
-with open("abc_result_meter.txt", "w") as f:
-    f.write(json.dumps(statistics_meter))
+
+# statistics_flat, statistics_key, statistics_meter = classify(statistics)
+#
+#
+# with open("abc_result_flat.txt", "w") as f:
+#     f.write(json.dumps(statistics_flat))
+#
+# with open("abc_result_key.txt", "w") as f:
+#     f.write(json.dumps(statistics_key))
+#
+# with open("abc_result_meter.txt", "w") as f:
+#     f.write(json.dumps(statistics_meter))
 
 send_email()

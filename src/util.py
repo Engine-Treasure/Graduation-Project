@@ -58,6 +58,13 @@ def non_decreasing(L):
     return all(x <= y for x, y in zip(L, L[1:]))
 
 
+def remove_at(bar, pos):
+    """Remove the NoteContainer after pos in the Bar."""
+    for i in range(len(bar) - pos):
+        bar.remove_last_entry()
+    return bar
+
+
 if __name__ == '__main__':
     print(get_geometric_progression_of_2(2, 32))
     print(get_geometric_progression_with_length(1, 2, 10))

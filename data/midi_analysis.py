@@ -9,7 +9,9 @@ from collections import Counter
 
 import midi
 import numpy as np
-import joblib
+# import joblib
+
+import send_email
 
 __author__ = "kissg"
 __date__ = "2017-03-28"
@@ -69,11 +71,10 @@ def compute_pitch_statistics(midi_file):
                 "pitch_5": Counter(pitch_5),
                 "pitch_6": Counter(pitch_6)}
     except Exception as e:
-        raise e
+        pass
 
 
 def concat_pitch_statistics(a, b):
-
     for k, v in b.iteritems():
         if k in a.keys():
             a[k].update(v)  # update Counter
@@ -81,20 +82,28 @@ def concat_pitch_statistics(a, b):
             a[k] = copy.deepcopy(v)
     return a
 
+
 # pitch_statistics = joblib.Parallel(n_jobs=10, verbose=0)(
 #     joblib.delayed(compute_pitch_statistics)(midi_file)
 #     for midi_file in glob.glob(
 #         os.path.join("MIDIs", "*.[mM][iI][dD]"))
 # )
 
-pitch_statistics = (compute_pitch_statistics(abc_file)
-              for abc_file in
-              glob.iglob(os.path.join("MIDIs", "*.[mM][iI][dD]")))
-pitch_statistics = (s for s in pitch_statistics if s is not None)
+subdirs = os.listdir("lmd_full")
+for subdir in subdirs:
+    pitch_statistics = (compute_pitch_statistics(midi_file)
+                        for midi_file in
+                        glob.iglob(os.path.join("lmd_full", subdir, "*.[mM][iI][dD]")))
 
+    pitch_statistics = (s for s in pitch_statistics if s is not None)
 
-pitch_statistics = reduce(concat_pitch_statistics, pitch_statistics)
+    pitch_statistics = reduce(concat_pitch_statistics, pitch_statistics)
 
+    with open("midi_result" + subdir, "w") as f:
+        f.write(json.dumps(pitch_statistics))
 
-with open("midi_result", "w") as f:
-    f.write(json.dumps(pitch_statistics))
+#
+# with open("midi_result", "w") as f:
+#     f.write(json.dumps(pitch_statistics))
+
+send_email.send_email()

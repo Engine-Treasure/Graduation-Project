@@ -12,10 +12,12 @@ import numpy as np
 from deap import base
 from deap import creator
 from deap import tools
+from deap import algorithms
 from mingus.containers import Bar, Note, Track
 from mingus.midi import midi_file_out
 
 import util
+import gen
 import evaluate
 from goperator import crossover, mutation, selection
 from config import pitch_frequencies, duration_frequencies
@@ -23,92 +25,65 @@ from config import pitch_frequencies, duration_frequencies
 __author__ = "kissg"
 __date__ = "2017-03-10"
 
-VELOCITY = {16, 33, 49, 64, 80, 96, 112, 126}  # 音的强度
-
-
-def gen_pitch(min=0, max=107):
-    """
-    :param min: min pitch
-    :param max: max pitch
-    :return: mingus.containers.Note
-    """
-    return Note().from_int(
-        np.random.choice(range(min, max + 1), p=pitch_frequencies))
-    # np.random.choice(range(min, max + 1)))
-
-
-def gen_duration(min=32, max=1):
-    """
-    The parameters may be confusing. However 1 represents a whole note,
-    2 a half note, 4 a quarter note, etc.
-    :return: a duration of note
-    """
-    # 公比是 2 的等比数列, 表示可用的时值
-    available_durations = util.get_geometric_progression_of_2(max, min)
-    # duration_frequencies 是按 1, 2, 4, 8, ... 顺序排列的
-    probabilities = duration_frequencies[-len(available_durations):]
-    p_sum = sum(probabilities)
-    p = [_ / p_sum for _ in probabilities]  # 重新计算比例
-
-    # todo - better probabilities
-    return np.random.choice(available_durations, p=p)
-
-
-def gen_bar(key="C", meter=(4, 4)):
-    bar = creator.Bar(key, meter)
-    while not bar.is_full():
-        # todo - place rest
-        bar.place_notes(toolbox.pitch(),
-                        gen_duration(max=int(ceil(bar.value_left()))))
-    return bar
-
-
-def gen_track(bars):
-    # todo - another approach
-    track = creator.Track()
-    for bar in bars:
-        track.add_bar(bar)
-    return track
-
-
-creator.create("BarFitness", base.Fitness, weights=(1.0, 1.0, 1.0, 1.0, 1.0))
-creator.create("TrackFitness", base.Fitness, weights=(1.0,))
+creator.create("BarFitness", base.Fitness, weights=(1.0, 1.0, 1.0, 1.0, 1.0,))
+# creator.create("TrackFitness", base.Fitness, weights=(1.0,))
 
 creator.create("Bar", Bar, fitness=creator.BarFitness)
-creator.create("Track", Track, fitness=creator.TrackFitness)
+# creator.create("Track", Track, fitness=creator.TrackFitness)
 
 toolbox = base.Toolbox()
 # 此处随机生成种群的个体
 # 注: toolbox.register(alias, func, args_for_func)
-# 注: tools.initRepeat(container, generator_func, repeat_times)
-toolbox.register("pitch", gen_pitch, min=9, max=96)  # 钢琴共 88 键, A0 ~ C8
-toolbox.register("bar", gen_bar, key="C", meter=(4, 4))
-toolbox.register("track", gen_track)
+toolbox.register("bar", gen.init_bar, creator.Bar, key="C", meter=(4, 4))
+toolbox.register("pop_bar", tools.initRepeat, list, toolbox.bar)
+# toolbox.register("track", init.initTrack, creator.Track)
 
-# toolbox.register("mate", )
-# toolbox.register("mutate", )
-# toolbox.register("select", )
-# toolbox.register("evaluate", )
+toolbox.register("mate", crossover.cxOnePoint)
+toolbox.register("mutate", mutation.mutName, indpb=0.10)
+toolbox.register("select", tools.selTournament, tournsize=4)
+toolbox.register("evaluate", evaluate.evaluate_bar)
+
+
+def main():
+    pop = toolbox.pop_bar(n=100)
+    for individual in pop:
+        print(individual)
+    hof = tools.HallOfFame(1)
+    stats = tools.Statistics(lambda ind: ind.fitness.values)
+    stats.register("avg", np.mean)
+    stats.register("max", np.max)
+    stats.register("min", np.min)
+
+    pop, logbook = algorithms.eaSimple(pop, toolbox, cxpb=0.5, mutpb=0.2,
+                                       ngen=5, stats=stats, halloffame=hof,
+                                       verbose=True)
+    return pop, logbook, hof
 
 
 if __name__ == '__main__':
-    bar_1 = toolbox.bar()
-    bar_2 = toolbox.bar()
-    # bar_1.fitness.values = evaluate.evalute_bar(bar_1)
-    # bar_2.fitness.values = evaluate.evalute_bar(bar_2)
-    # print(bar_1.fitness.values)
-    # print(bar_2.fitness.values)
-    child_1, child_2 = [toolbox.clone(ind) for ind in (bar_1, bar_2)]
-    child_1, child_2 = crossover.cxOnePoint(child_1, child_2)
-    print(bar_1)
-    child_1 = mutation.mutPitch(child_1, 0.5)
-    print(child_1)
+    pop, log, hof = main()
+    print(
+        "Best individual is: {}\n with fitness: {}".format(hof[0],
+                                                           hof[0].fitness))
 
-    # selected = tools.selBest([child_1, child_2], 1)
-    # print(child_1, child_2)
+    print(pop)
+    top16 = tools.selRandom(pop, 16)
+    track = Track()
+    for i, bar in enumerate(top16):
+        print(bar)
+        track.add_bar(bar)
+
+    lp.to_pdf(lp.from_Track(track), "top.pdf")
+
+    midi_file_out.write_Track("top.mid", track)
 
 
 
+    # bars = [toolbox.bar() for i in range(100)]
+    # [toolbox.evaluate(bar) for bar in bars]
+    # results = (toolbox.evaluate(bar) for bar in bars)
+    # for r in results:
+    #     print(r)
 
     # bars = [toolbox.bar() for i in range(100)]
     #

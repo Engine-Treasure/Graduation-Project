@@ -61,7 +61,7 @@ def grade_pitch_change(bar):
     对整体音高变化的打分 - 单调变化或不变的音高, 低分
     """
     # todo
-    pitches = [int(note[2][0]) for note in bar]
+    pitches = [int(note[2][0]) for note in bar if note[2] is not None]
     return 0 if util.is_monotone(pitches) else 1
 
 
@@ -87,13 +87,13 @@ def grade_markov(bar):
     pass
 
 
-def evalute_bar(bar):
+def evaluate_bar(bar):
     # todo - kinds of evalute ways
     names, octaves, durations = util.get_names_octaves_durations(bar)
 
     # 可能生成了单音符的小节, 直接返回 1 分, 不做评价
     if len(names) == 1:
-        return 1.0
+        return (0.0, ) * 5
     # 音名, 八度, 时值的组合, 每一对都是前后组合, 有别于 Python 自带的 Combinations
     name_combinations, octave_combinations, duration_combinations = map(
         util.get_combination_order2, (names, octaves, durations))
@@ -104,7 +104,7 @@ def evalute_bar(bar):
     grade_of_duration = map(grade_duration, duration_combinations)
 
     # 评分求和, 并标准化为 0~1.0, scaling
-    grade_of_intervals = sum(grade_of_octave) / 10 / len(grade_of_intervals)
+    grade_of_intervals = sum(grade_of_intervals) / 10 / len(grade_of_intervals)
     grade_of_octave = sum(grade_of_octave) / len(grade_of_octave)
     grade_of_duration = sum(grade_of_duration) / len(grade_of_duration)
 
@@ -113,7 +113,7 @@ def evalute_bar(bar):
     grade_of_duration_change = grade_duration_change(bar)
 
     return grade_of_intervals, grade_of_octave, grade_of_duration, \
-           grade_of_pitch_change, grade_of_duration_change
+        grade_of_pitch_change, grade_of_duration_change
     # simply mean
     # return sum((grade_of_intervals, grade_of_octave, grade_of_duration,
     #             grade_of_pitch_change, grade_of_duration_change)) / 5.0

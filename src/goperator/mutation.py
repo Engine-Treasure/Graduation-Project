@@ -9,12 +9,30 @@ from mingus.containers import Bar, Note
 
 from collections import Sequence
 
+from src import gen
 
-def mutPitch(individual, indpb):
-    size = len(individual)
-    for i in xrange(size):
+
+def mut_name(individual, indpb):
+    for i in xrange(len(individual)):
         if random.random() < indpb:
-            pos = individual[i][0]
-            individual.place_notes_at(10, pos)
-            print(individual)
-    return individual
+            individual[i] = gen.gen_pitch()
+    return individual,
+
+
+def mut_augment(individual, indpb):
+    if random.random() < indpb:
+        individual.augment()
+    return individual,
+
+
+def mut_diminish(individual, indpb):
+    if random.random() < indpb:
+        individual.diminish()
+    return individual,
+
+
+def mut_transpose(individual, indpb):
+    if random.random() < indpb:
+        individual.diminish()
+    return individual,
+

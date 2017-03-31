@@ -26,7 +26,8 @@ def get_names_octaves_durations(bar):
     Return a tuple lists: note names, octaves, durations
     """
     _, durations, notes = zip(*bar)
-    names, octaves = zip(*((no[0].name, no[0].octave) for no in notes))
+    names, octaves = zip(
+        *((no[0].name, no[0].octave) for no in notes if no is not None))
 
     return names, octaves, durations
 
@@ -38,7 +39,6 @@ def get_combination_order2(seq_obj):
 
 
 def is_monotone(L):
-    print(L)
     return strictly_decreasing(L) and strictly_decreasing(L)
 
 

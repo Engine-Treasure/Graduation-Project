@@ -5,7 +5,9 @@ import numpy as np
 from mingus.containers import Note
 
 import util
-from config import pitch_frequencies, duration_frequencies
+from config import duration_frequencies
+from config import pitch_frequencies_cmaj as pitch_frequencies
+
 from math import ceil
 
 __author__ = "kissg"
@@ -21,8 +23,8 @@ def gen_pitch(min=9, max=96):
     :return: mingus.containers.Note
     """
     return Note().from_int(
-        # np.random.choice(range(min, max + 1), p=pitch_frequencies))
-        np.random.choice(range(min, max + 1)))
+        np.random.choice(range(min, max + 1), p=pitch_frequencies))
+        # np.random.choice(range(min, max + 1)))
 
 
 def gen_duration(min=32, max=1):
@@ -41,8 +43,8 @@ def gen_duration(min=32, max=1):
     p = [_ / p_sum for _ in probabilities]  # 重新计算比例
 
     # todo - better probabilities
-    # return np.random.choice(available_durations, p=p)
-    return np.random.choice(available_durations)
+    return np.random.choice(available_durations, p=p)
+    # return np.random.choice(available_durations)
 
 
 def init_bar(container, **kwargs):

@@ -25,7 +25,8 @@ from config import pitch_frequencies, duration_frequencies
 __author__ = "kissg"
 __date__ = "2017-03-10"
 
-creator.create("BarFitness", base.Fitness, weights=(1.0, 1.0, 1.0, 1.0, 1.0,))
+creator.create("BarFitness", base.Fitness, weights=(1.0, 1.0, 1.0, 1.0, 1.0,
+                                                    1.0))
 # creator.create("TrackFitness", base.Fitness, weights=(1.0,))
 
 creator.create("Bar", Bar, fitness=creator.BarFitness)
@@ -38,14 +39,14 @@ toolbox.register("bar", gen.init_bar, creator.Bar, key="C", meter=(4, 4))
 toolbox.register("pop_bar", tools.initRepeat, list, toolbox.bar)
 # toolbox.register("track", init.initTrack, creator.Track)
 
-toolbox.register("mate", crossover.cxOnePoint)
-toolbox.register("mutate", mutation.mutName, indpb=0.10)
+toolbox.register("mate", crossover.cross)
+toolbox.register("mutate", mutation.mutate, indpb=0.10)
 toolbox.register("select", tools.selTournament, tournsize=4)
 toolbox.register("evaluate", evaluate.evaluate_bar)
 
 
 def main():
-    pop = toolbox.pop_bar(n=100)
+    pop = toolbox.pop_bar(n=1000)
     for individual in pop:
         print(individual)
     hof = tools.HallOfFame(1)
@@ -55,7 +56,7 @@ def main():
     stats.register("min", np.min)
 
     pop, logbook = algorithms.eaSimple(pop, toolbox, cxpb=0.5, mutpb=0.2,
-                                       ngen=5, stats=stats, halloffame=hof,
+                                       ngen=10, stats=stats, halloffame=hof,
                                        verbose=True)
     return pop, logbook, hof
 
@@ -66,7 +67,6 @@ if __name__ == '__main__':
         "Best individual is: {}\n with fitness: {}".format(hof[0],
                                                            hof[0].fitness))
 
-    print(pop)
     top16 = tools.selRandom(pop, 16)
     track = Track()
     for i, bar in enumerate(top16):

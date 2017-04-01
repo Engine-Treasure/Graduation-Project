@@ -74,12 +74,28 @@ def grade_duration_change(bar):
     return 0 if util.is_monotone(durations) else 1
 
 
+def grade_bar_length(bar):
+    length = len(bar)
+    if length == 4:
+        return 1.0
+    elif length in [3,  5]:
+        return 0.9
+    elif length in [2, 6]:
+        return 0.6
+    elif length in [2, 7]:
+        return 0.3
+    else:
+        return 0
+
+
 def grade_internal_chords(bar):
     """
     对调内三/七和弦的打分
     """
     # todo
+    # names, octaves, durations = util.GET_NAMES_OCTAVES_DURATIONS(bar)
     pass
+
 
 
 def grade_markov(bar):
@@ -93,7 +109,7 @@ def evaluate_bar(bar):
 
     # 可能生成了单音符的小节, 直接返回 1 分, 不做评价
     if len(names) == 1:
-        return (0.0, ) * 5
+        return (0.0,) * 6
     # 音名, 八度, 时值的组合, 每一对都是前后组合, 有别于 Python 自带的 Combinations
     name_combinations, octave_combinations, duration_combinations = map(
         util.get_combination_order2, (names, octaves, durations))
@@ -111,9 +127,10 @@ def evaluate_bar(bar):
     # 以下打分是针对整个小节的, 不必求和
     grade_of_pitch_change = grade_pitch_change(bar)
     grade_of_duration_change = grade_duration_change(bar)
+    grade_of_bar_length = grade_bar_length(bar)
 
     return grade_of_intervals, grade_of_octave, grade_of_duration, \
-        grade_of_pitch_change, grade_of_duration_change
+           grade_of_pitch_change, grade_of_duration_change, grade_of_bar_length
     # simply mean
     # return sum((grade_of_intervals, grade_of_octave, grade_of_duration,
     #             grade_of_pitch_change, grade_of_duration_change)) / 5.0

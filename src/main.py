@@ -20,13 +20,12 @@ import util
 import gen
 import evaluate
 from goperator import crossover, mutation, selection
-from config import pitch_frequencies, duration_frequencies
 
 __author__ = "kissg"
 __date__ = "2017-03-10"
 
 creator.create("BarFitness", base.Fitness, weights=(1.0, 1.0, 1.0, 1.0, 1.0,
-                                                    1.0))
+                                                    1.0, 1.0))
 # creator.create("TrackFitness", base.Fitness, weights=(1.0,))
 
 creator.create("Bar", Bar, fitness=creator.BarFitness)
@@ -56,7 +55,7 @@ def main():
     stats.register("min", np.min)
 
     pop, logbook = algorithms.eaSimple(pop, toolbox, cxpb=0.5, mutpb=0.2,
-                                       ngen=10, stats=stats, halloffame=hof,
+                                       ngen=100, stats=stats, halloffame=hof,
                                        verbose=True)
     return pop, logbook, hof
 

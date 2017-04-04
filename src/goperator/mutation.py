@@ -14,7 +14,6 @@ from src import gen
 
 def mutate(individual, indpb):
     func = getattr(Mutation, random.choice(__method__))
-    print(func)
     return func(individual, indpb)
 
 
@@ -31,6 +30,7 @@ class Mutation(object):
         for i in xrange(len(individual)):
             if individual[i][2] is not None and random.random() < indpb:
                 individual[i][2][0].augment()  # Note.augment
+                individual[i][2][0].from_hertz(individual[i][2][0].to_hertz())
             return individual,
 
     @classmethod
@@ -38,6 +38,7 @@ class Mutation(object):
         for i in xrange(len(individual)):
             if individual[i][2] is not None and random.random() < indpb:
                 individual[i][2][0].diminish()  # Note.augment
+                individual[i][2][0].from_hertz(individual[i][2][0].to_hertz())
         return individual,
 
     @classmethod
@@ -45,6 +46,7 @@ class Mutation(object):
         for i in xrange(len(individual)):
             if individual[i][2] is not None and random.random() < indpb:
                 individual[i][2][0].transpose(str(random.randint(1, 7)))
+                individual[i][2][0].from_hertz(individual[i][2][0].to_hertz())
         return individual,
 
 

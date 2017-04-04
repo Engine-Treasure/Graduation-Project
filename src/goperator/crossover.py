@@ -15,7 +15,6 @@ from src.gen import gen_pitch, gen_duration
 
 def cross(ind1, ind2):
     func = getattr(Crossover, random.choice(__method__))
-    print(func)
     ind1, ind2 = func(ind1, ind2)
 
     if not ind1.is_full():
@@ -62,7 +61,12 @@ class Crossover(object):
     def cxTwoPoint(cls, ind1, ind2):
         size = min(len(ind1), len(ind2))
         cxpoint1 = random.randint(1, size)
-        cxpoint2 = random.randint(1, size - 1)
+        try:
+            cxpoint2 = random.randint(1, size - 1)
+        except ValueError:
+            # 可能的一场是遇到单个音符的小节, size=1
+            # 直接选择交换两个个体
+            return ind2, ind1
 
         if cxpoint2 >= cxpoint1:
             cxpoint2 += 1

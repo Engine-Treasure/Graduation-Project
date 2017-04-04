@@ -5,8 +5,8 @@ import numpy as np
 from mingus.containers import Note
 
 import util
-from config import duration_frequencies
-from config import pitch_frequencies_cmaj as pitch_frequencies
+from config import duration_frequencies_hard_code as duration_frequencies
+from config import new_pitch_frequencies_ls as pitch_frequencies
 
 from math import ceil
 
@@ -22,9 +22,10 @@ def gen_pitch(min=9, max=96):
     :param max: max pitch, 96 - 'C-8'
     :return: mingus.containers.Note
     """
-    return Note().from_int(
-        np.random.choice(range(min, max + 1), p=pitch_frequencies))
-        # np.random.choice(range(min, max + 1)))
+    pitch = Note().from_int(np.random.choice(range(min, max + 1), p=pitch_frequencies))
+    # 经验设置音高, 最常用的音高区间是 C3-B6
+    return pitch if 130 < pitch.to_hertz() < 1976 else gen_pitch(min, max)
+    # np.random.choice(range(min, max + 1)))
 
 
 def gen_duration(min=32, max=1):

@@ -28,7 +28,6 @@ def get_names_octaves_durations(bar):
     _, durations, notes = zip(*bar)
     names, octaves = zip(
         *((no[0].name, no[0].octave) for no in notes if no is not None))
-
     return names, octaves, durations
 
 
@@ -39,23 +38,28 @@ def get_combination_order2(seq_obj):
 
 
 def is_monotone(L):
-    return strictly_decreasing(L) and strictly_decreasing(L)
+    """单调"""
+    return non_increasing(L) or non_decreasing(L)
 
 
 def strictly_increasing(L):
-    return all(x < y for x, y in zip(L, L[1:]))
+    """严格单调递增"""
+    return all(x < y for x, y in zip(L[:-1], L[1:]))
 
 
 def strictly_decreasing(L):
-    return all(x > y for x, y in zip(L, L[1:]))
+    """严格单调递减"""
+    return all(x > y for x, y in zip(L[:-1], L[1:]))
 
 
 def non_increasing(L):
-    return all(x >= y for x, y in zip(L, L[1:]))
+    """非严格单调递减"""
+    return all(x >= y for x, y in zip(L[:-1], L[1:]))
 
 
 def non_decreasing(L):
-    return all(x <= y for x, y in zip(L, L[1:]))
+    """非严格单调递增"""
+    return all(x <= y for x, y in zip(L[:-1], L[1:]))
 
 
 def remove_at(bar, pos):

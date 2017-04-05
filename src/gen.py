@@ -23,8 +23,10 @@ def gen_pitch(min=9, max=96):
     :return: mingus.containers.Note
     """
     pitch = Note().from_int(np.random.choice(range(min, max + 1), p=pitch_frequencies))
-    # 经验设置音高, 最常用的音高区间是 C3-B6
-    return pitch if 130 < pitch.to_hertz() < 1976 else gen_pitch(min, max)
+    # 经验设置音高, 最常用的音高区间是 C3-B5
+    return pitch if 130 < pitch.to_hertz() < 988 else gen_pitch(min, max)
+    # C3-B5
+    # return pitch if 130 < pitch.to_hertz() < 1976 else gen_pitch(min, max)
     # np.random.choice(range(min, max + 1)))
 
 

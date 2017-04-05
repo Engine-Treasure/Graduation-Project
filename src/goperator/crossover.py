@@ -114,9 +114,19 @@ class Crossover(object):
 
         return ind1, ind2
 
+
+    @classmethod
+    def cxUniform(cls, ind1, ind2, indpb=0.5):
+        """交换某位音名"""
+        size = min(len(ind1), len(ind2))
+        for i in xrange(size):
+            if random.random() < indpb:
+                ind1[i][2], ind2[i][2] = ind2[i][2], ind1[i][2]
+        return ind1, ind2
+
     @classmethod
     def cxBlend(cls, ind1, ind2):
         pass
 
 
-__method__ = ["cxOnePoint", "cxMessyOnePoint", "cxTwoPoint"]
+__method__ = ["cxOnePoint", "cxMessyOnePoint", "cxTwoPoint", "cxUniform"]

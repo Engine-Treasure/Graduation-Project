@@ -26,9 +26,8 @@ __date__ = "2017-03-10"
 
 creator.create("BarFitness", base.Fitness, weights=(1.0, 1.0, 1.0, 1.0, 1.0,
                                                     1.0, 1.0))
-# creator.create("TrackFitness", base.Fitness, weights=(1.0,))
-
 creator.create("Bar", Bar, fitness=creator.BarFitness)
+# creator.create("TrackFitness", base.Fitness, weights=(1.0,))
 # creator.create("Track", Track, fitness=creator.TrackFitness)
 
 toolbox = base.Toolbox()
@@ -38,14 +37,16 @@ toolbox.register("bar", gen.init_bar, creator.Bar, key="C", meter=(4, 4))
 toolbox.register("pop_bar", tools.initRepeat, list, toolbox.bar)
 # toolbox.register("track", init.initTrack, creator.Track)
 
+toolbox.register("evaluate", evaluate.evaluate_bar)
 toolbox.register("mate", crossover.cross)
 toolbox.register("mutate", mutation.mutate, indpb=0.10)
-toolbox.register("select", tools.selTournament, tournsize=4)
-toolbox.register("evaluate", evaluate.evaluate_bar)
+toolbox.register("select", tools.selNSGA2)
+# toolbox.register("select", tools.selTournament, tournsize=100)
 
 
 def main():
-    pop = toolbox.pop_bar(n=1000)
+    MU, LAMBDA = 100, 200
+    pop = toolbox.pop_bar(n=MU)
     for individual in pop:
         print(individual)
     hof = tools.HallOfFame(1)
@@ -54,9 +55,13 @@ def main():
     stats.register("max", np.max)
     stats.register("min", np.min)
 
-    pop, logbook = algorithms.eaSimple(pop, toolbox, cxpb=0.5, mutpb=0.2,
-                                       ngen=100, stats=stats, halloffame=hof,
-                                       verbose=True)
+    # pop, logbook = algorithms.eaSimple(pop, toolbox, cxpb=0.5, mutpb=0.2,
+    #                                    ngen=20, stats=stats, halloffame=hof,
+    #                                    verbose=True)
+
+    pop, logbook = algorithms.eaMuPlusLambda(pop, toolbox, MU, LAMBDA, cxpb=0.5,
+                                             mutpb=0.2, ngen=100, stats=stats,
+                                             halloffame=hof, verbose=True)
     return pop, logbook, hof
 
 
@@ -65,11 +70,12 @@ if __name__ == '__main__':
     print(
         "Best individual is: {}\n with fitness: {}".format(hof[0],
                                                            hof[0].fitness))
+    bar_list = {bar for bar in pop}
+    print(len(bar_list))
 
-    top16 = tools.selRandom(pop, 16)
+    top16 = tools.selRoulette(pop, 16)
     track = Track()
     for i, bar in enumerate(top16):
-        print(bar)
         track.add_bar(bar)
 
     lp.to_pdf(lp.from_Track(track), "top.pdf")

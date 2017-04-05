@@ -25,17 +25,17 @@ def grade_intervals(notes_pair):
     其他为极不协和音程
     """
     itv = intervals.determine(*notes_pair)
-    if "unison" in itv:  # 纯一度, 纯八度
-        return 5
+    if "unison" in itv:  # 纯一度, 纯八度, 缺少变化
+        return 1
     elif itv in ("perfect fifth", "perfect fourth"):
-        return 4
+        return 5
     elif itv in ("major third", "minor third", "major sixth", "minor sixth"):
         return 3
     elif itv in ("major second", "minor second", "major seventh",
                  "minor seventh"):
         return -1
     else:
-        return -3
+        return -2
 
 
 def grade_octave(octaves_pair):
@@ -88,11 +88,11 @@ def grade_duration_change(bar):
 
 def grade_bar_length(bar):
     length = len(bar)
-    if length in [4, 5]:
+    if length in [4]:
         return 1.0
-    elif length in [3, 6]:
-        return 0.6
-    elif length in [2, 7]:
+    elif length in [3, 5]:
+        return 0.7
+    elif length in [2, 6]:
         return 0.3
     else:  # 一个小节中音符过多，扣分
         return -0.2

@@ -12,9 +12,13 @@ from collections import Sequence
 from src import gen
 
 
-def mutate(individual, indpb):
-    func = getattr(Mutation, random.choice(__method__))
+def mutate_bar(individual, indpb):
+    func = getattr(Mutation, random.choice(__bar__))
     return func(individual, indpb)
+
+
+def mutate_sentence(individual, indpb):
+    pass
 
 
 class Mutation(object):
@@ -62,6 +66,6 @@ class Mutation(object):
         return individual,
 
 
-__method__ = ["mut_name", "mut_augment", "mut_diminish", "mut_transpose",
+__bar__ = ["mut_name", "mut_augment", "mut_diminish", "mut_transpose",
               "mut_duration"]
 __all__ = ["mutate"]

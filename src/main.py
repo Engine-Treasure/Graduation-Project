@@ -2,6 +2,7 @@
 
 from __future__ import division
 
+import random
 from collections import OrderedDict
 from itertools import islice
 from math import ceil
@@ -13,75 +14,134 @@ from deap import base
 from deap import creator
 from deap import tools
 from deap import algorithms
-from mingus.containers import Bar, Note, Track
+from mingus.containers import Bar, Note, Track, Composition
 from mingus.midi import midi_file_out
 
 import util
 import gen
 import evaluate
+import fortin2013
 from goperator import crossover, mutation, selection
 
 __author__ = "kissg"
 __date__ = "2017-03-10"
 
+
+SENTENCE_SIZE = 4
+
 creator.create("BarFitness", base.Fitness, weights=(1.0, 1.0, 1.0, 1.0, 1.0,
                                                     1.0, 1.0))
 creator.create("Bar", Bar, fitness=creator.BarFitness)
-# creator.create("TrackFitness", base.Fitness, weights=(1.0,))
-# creator.create("Track", Track, fitness=creator.TrackFitness)
+creator.create("SentenceFitness", base.Fitness, weights=(1.0,))
+creator.create("Sentence", list, fitness=creator.SentenceFitness)
 
 toolbox = base.Toolbox()
 # 此处随机生成种群的个体
 # 注: toolbox.register(alias, func, args_for_func)
 toolbox.register("bar", gen.init_bar, creator.Bar, key="C", meter=(4, 4))
 toolbox.register("pop_bar", tools.initRepeat, list, toolbox.bar)
-# toolbox.register("track", init.initTrack, creator.Track)
+toolbox.register("sentence", tools.initRepeat, creator.Sentence, SENTENCE_SIZE)
+toolbox.register("pop_sentence", tools.initRepeat, creator.Sentence,
+                 SENTENCE_SIZE)
 
-toolbox.register("evaluate", evaluate.evaluate_bar)
-toolbox.register("mate", crossover.cross)
-toolbox.register("mutate", mutation.mutate, indpb=0.10)
-toolbox.register("select", tools.selNSGA2)
+toolbox.register("evaluate_bar", evaluate.evaluate_bar)
+toolbox.register("evaluate_sentence", evaluate.evaluate_sentence)
+toolbox.register("mate_bar", crossover.cross_bar)
+toolbox.register("mutate_bar", mutation.mutate_bar, indpb=0.10)
+toolbox.register("preselect_bar", fortin2013.selTournamentFitnessDCD)
+toolbox.register("select_bar", fortin2013.selNSGA2)
 # toolbox.register("select", tools.selTournament, tournsize=100)
 
 
-def main():
-    MU, LAMBDA = 100, 200
-    pop = toolbox.pop_bar(n=MU)
-    for individual in pop:
-        print(individual)
-    hof = tools.HallOfFame(1)
+def main(seed=None):
+    random.seed(seed)
+    NGEN = 50
+    MU = 100
+    CXPB = 0.9
+
     stats = tools.Statistics(lambda ind: ind.fitness.values)
     stats.register("avg", np.mean)
+    stats.register("std", np.std)
     stats.register("max", np.max)
     stats.register("min", np.min)
 
-    # pop, logbook = algorithms.eaSimple(pop, toolbox, cxpb=0.5, mutpb=0.2,
-    #                                    ngen=20, stats=stats, halloffame=hof,
-    #                                    verbose=True)
+    logbook = tools.Logbook()
+    logbook.header = "gen", "evals", "std", "min", "avg", "max"
 
-    pop, logbook = algorithms.eaMuPlusLambda(pop, toolbox, MU, LAMBDA, cxpb=0.5,
-                                             mutpb=0.2, ngen=100, stats=stats,
-                                             halloffame=hof, verbose=True)
-    return pop, logbook, hof
+    pop = toolbox.pop_bar(n=MU)
+
+    # Evaluate the individuals with an invalid fitness
+    invalid_ind = [ind for ind in pop if not ind.fitness.valid]
+    fitnesses = toolbox.map(toolbox.evaluate_bar, invalid_ind)
+    for ind, fit in zip(invalid_ind, fitnesses):
+        ind.fitness.values = fit
+
+    # This is just to assign the crowding distance to the individuals
+    # no actual selection is done
+    pop = toolbox.select_bar(pop, len(pop))
+
+    record = stats.compile(pop)
+    logbook.record(gen=0, evals=len(invalid_ind), **record)
+    print(logbook.stream)
+
+    # Begin the generational process
+    for gen in range(1, NGEN):
+        # Vary the population
+        offspring = toolbox.preselect_bar(pop, len(pop))
+        offspring = [toolbox.clone(ind) for ind in offspring]
+
+        for ind1, ind2 in zip(offspring[::2], offspring[1::2]):
+            if random.random() <= CXPB:
+                toolbox.mate_bar(ind1, ind2)
+
+            toolbox.mutate_bar(ind1)
+            toolbox.mutate_bar(ind2)
+            del ind1.fitness.values, ind2.fitness.values
+
+        # Evaluate the individuals with an invalid fitness
+        invalid_ind = [ind for ind in offspring if not ind.fitness.valid]
+        fitnesses = toolbox.map(toolbox.evaluate_bar, invalid_ind)
+        for ind, fit in zip(invalid_ind, fitnesses):
+            ind.fitness.values = fit
+
+        # Select the next generation population
+        pop = toolbox.select_bar(pop + offspring, MU)
+        record = stats.compile(pop)
+        logbook.record(gen=gen, evals=len(invalid_ind), **record)
+        print(logbook.stream)
+
+    return pop, logbook
 
 
 if __name__ == '__main__':
-    pop, log, hof = main()
-    print(
-        "Best individual is: {}\n with fitness: {}".format(hof[0],
-                                                           hof[0].fitness))
+    pop, log = main()
+    # print(
+    #     "Best individual is: {}\n with fitness: {}".format(hof[0],
+    #                                                        hof[0].fitness))
     bar_list = {bar for bar in pop}
     print(len(bar_list))
 
-    top16 = tools.selRoulette(pop, 16)
     track = Track()
-    for i, bar in enumerate(top16):
+    for i, bar in enumerate(tools.selRoulette(pop, 16)):
+        print(bar.fitness.values)
         track.add_bar(bar)
 
     lp.to_pdf(lp.from_Track(track), "top.pdf")
 
     midi_file_out.write_Track("top.mid", track)
 
+
+    # track2 = Track()
+    # for i, bar in enumerate(tools.selRoulette(pop, 16)):
+    #     print(bar.fitness.values)
+    #     track2.add_bar(bar)
+    # composition = Composition()
+    # composition.add_track(track)
+    # composition.add_track(track2)
+
+    # lp.to_pdf(lp.from_Composition(composition), "top.pdf")
+    #
+    # midi_file_out.write_Composition("top.mid", composition)
 
 
     # bars = [toolbox.bar() for i in range(100)]

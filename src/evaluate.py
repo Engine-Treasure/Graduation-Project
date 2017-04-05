@@ -150,7 +150,7 @@ def evaluate_bar(bar):
     # grade_of_pitch_change
 
 
-def evaluate_track(individual):
+def evaluate_sentence(sentence):
     # Do some hard computing on the individual
     # Multi dimension
     return 1

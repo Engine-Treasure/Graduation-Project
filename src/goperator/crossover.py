@@ -13,8 +13,8 @@ from src.util import remove_at
 from src.gen import gen_pitch, gen_duration
 
 
-def cross(ind1, ind2):
-    func = getattr(Crossover, random.choice(__method__))
+def cross_bar(ind1, ind2):
+    func = getattr(Crossover, random.choice(__bar__))
     ind1, ind2 = func(ind1, ind2)
 
     if not ind1.is_full():
@@ -36,6 +36,10 @@ def cross(ind1, ind2):
                                  gen_duration(max=int(ceil(ind2.value_left()))))
 
     return ind1, ind2
+
+
+def cross_sentence(ind1, ind2):
+    pass
 
 
 class Crossover(object):
@@ -129,4 +133,4 @@ class Crossover(object):
         pass
 
 
-__method__ = ["cxOnePoint", "cxMessyOnePoint", "cxTwoPoint", "cxUniform"]
+__bar__ = ["cxOnePoint", "cxMessyOnePoint", "cxTwoPoint", "cxUniform"]

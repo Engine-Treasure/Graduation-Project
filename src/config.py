@@ -7,6 +7,12 @@ import json
 
 import pandas as pd
 
+
+name2int = {
+    "C": 0, "C#": 1, "D": 2, "D#": 3, "E": 4, "F": 5,
+    "F#": 6, "G": 7, "G#": 8, "A": 9, "A#": 10, "B": 11
+}
+
 old_pitch_frequencies = {9: 0.000103035426, 10: 6.65895269e-05, 11: 0.000144871778, 12: 0.000406509887,
                          13: 0.0002279813,
                          14: 0.000801729322, 15: 0.00102075335, 16: 0.00265840517, 17: 0.00251828021, 18: 0.00150449958,
@@ -248,6 +254,12 @@ columns = ['C-18', 'C#-11', 'C-11', 'B-10', 'A#-10', 'F-11', 'E-11', 'D#-11', 'D
            'F-3', 'C#-0', 'F-0', 'A-0', 'D-12', 'D#-12', 'C-12', 'A#-16', 'A#-11', 'C-17', 'G#-11', 'A-11', 'E-12',
            'F-12', 'F-6', 'E-6', 'D#-6', 'D-6', 'C#-6', 'C-6', 'B-5', 'A#-5', 'G-6', 'F#-6']
 
+
 markov_table_rank = pd.read_csv("statics/pitch_markov_table_rank.csv", index_col=[0])
 # with open("statics/pitch_markov_table_rank.txt") as f:
 #     markov_table_rank = json.load(f)
+
+
+def init():
+    global BAR_POOL
+    BAR_POOL = []

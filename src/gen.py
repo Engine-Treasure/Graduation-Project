@@ -1,14 +1,16 @@
 # -*- coding: utf-8 -*-
 from __future__ import division
 
+import random
+from math import ceil
+
 import numpy as np
 from mingus.containers import Note
 
 import util
+from config import BAR_POOL
 from config import duration_frequencies_hard_code as duration_frequencies
 from config import new_pitch_frequencies_ls as pitch_frequencies
-
-from math import ceil
 
 __author__ = "kissg"
 __date__ = "2017-03-31"
@@ -62,9 +64,11 @@ def init_bar(container, **kwargs):
     return bar
 
 
-def init_track(container, **kwargs):
-    # todo - another approach
-    track = container()
-    # for bar in bars:
-    #     track.add_bar(bar)
-    # return track
+def get_bar(bars):
+    return random.SystemRandom().choice(bars)
+
+
+def init_sentence():
+    sentence = []
+    for i in xrange(4):
+        sentence.append(get_bar(BAR))

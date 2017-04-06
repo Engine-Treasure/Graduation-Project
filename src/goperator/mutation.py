@@ -13,15 +13,18 @@ from src import gen
 
 
 def mutate_bar(individual, indpb):
-    func = getattr(Mutation, random.choice(__bar__))
+    func = getattr(BarMutation, random.choice(__method__))
     return func(individual, indpb)
 
 
 def mutate_sentence(individual, indpb):
-    pass
+    for i in individual:
+        if random.random() < indpb:
+            individual[i] = gen.get_bar()
+    return individual,
 
 
-class Mutation(object):
+class BarMutation(object):
     @classmethod
     def mut_name(cls, individual, indpb):
         # 不用 for x in individual 的原因是, 要最 individual 本身进行修改
@@ -66,6 +69,6 @@ class Mutation(object):
         return individual,
 
 
-__bar__ = ["mut_name", "mut_augment", "mut_diminish", "mut_transpose",
+__method__ = ["mut_name", "mut_augment", "mut_diminish", "mut_transpose",
               "mut_duration"]
-__all__ = ["mutate"]
+__all__ = ["mutate_bar", "mutate_sentence"]

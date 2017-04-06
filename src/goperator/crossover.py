@@ -8,13 +8,14 @@ from math import ceil
 import random
 
 from mingus.containers import Note, Bar
+from deap import tools
 
 from src.util import remove_at
 from src.gen import gen_pitch, gen_duration
 
 
 def cross_bar(ind1, ind2):
-    func = getattr(Crossover, random.choice(__bar__))
+    func = getattr(BarCrossover, random.choice(__method__))
     ind1, ind2 = func(ind1, ind2)
 
     if not ind1.is_full():
@@ -39,10 +40,13 @@ def cross_bar(ind1, ind2):
 
 
 def cross_sentence(ind1, ind2):
-    pass
+    func = getattr(tools, random.choice(__method__))
+    ind1, ind2 = func(ind1, ind2) if func == tools.cxUniform \
+        else func(ind1, ind2, 0.5)
+    return ind1, ind2
 
 
-class Crossover(object):
+class BarCrossover(object):
     @classmethod
     def cxOnePoint(cls, ind1, ind2):
         size = min(len(ind1), len(ind2))
@@ -118,7 +122,6 @@ class Crossover(object):
 
         return ind1, ind2
 
-
     @classmethod
     def cxUniform(cls, ind1, ind2, indpb=0.5):
         """交换某位音名"""
@@ -133,4 +136,5 @@ class Crossover(object):
         pass
 
 
-__bar__ = ["cxOnePoint", "cxMessyOnePoint", "cxTwoPoint", "cxUniform"]
+__method__ = ["cxOnePoint", "cxMessyOnePoint", "cxTwoPoint", "cxUniform"]
+__all__ = ["cross_bar", "cross_sentence"]

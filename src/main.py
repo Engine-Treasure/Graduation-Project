@@ -20,6 +20,7 @@ from mingus.midi import midi_file_out
 import util
 import gen
 import evaluate
+from config import init
 import fortin2013
 from goperator import crossover, mutation, selection
 
@@ -27,11 +28,12 @@ __author__ = "kissg"
 __date__ = "2017-03-10"
 
 
-SENTENCE_SIZE = 4
+SENTENCE_SIZE = 4  # 乐句包含的小节数
 
 creator.create("BarFitness", base.Fitness, weights=(1.0, 1.0, 1.0, 1.0, 1.0,
                                                     1.0, 1.0))
 creator.create("Bar", Bar, fitness=creator.BarFitness)
+
 creator.create("SentenceFitness", base.Fitness, weights=(1.0,))
 creator.create("Sentence", list, fitness=creator.SentenceFitness)
 
@@ -40,12 +42,9 @@ toolbox = base.Toolbox()
 # 注: toolbox.register(alias, func, args_for_func)
 toolbox.register("bar", gen.init_bar, creator.Bar, key="C", meter=(4, 4))
 toolbox.register("pop_bar", tools.initRepeat, list, toolbox.bar)
-toolbox.register("sentence", tools.initRepeat, creator.Sentence, SENTENCE_SIZE)
-toolbox.register("pop_sentence", tools.initRepeat, creator.Sentence,
-                 SENTENCE_SIZE)
+
 
 toolbox.register("evaluate_bar", evaluate.evaluate_bar)
-toolbox.register("evaluate_sentence", evaluate.evaluate_sentence)
 toolbox.register("mate_bar", crossover.cross_bar)
 toolbox.register("mutate_bar", mutation.mutate_bar, indpb=0.10)
 toolbox.register("preselect_bar", fortin2013.selTournamentFitnessDCD)
@@ -53,9 +52,25 @@ toolbox.register("select_bar", fortin2013.selNSGA2)
 # toolbox.register("select", tools.selTournament, tournsize=100)
 
 
-def main(seed=None):
+toolbox.register("sentence", gen.init_sentence)
+toolbox.register("pop_sentence", tools.initRepeat, list, toolbox.sentence)
+
+
+toolbox.register("evaluate", evaluate.evaluate_sentence)
+toolbox.register("mate", crossover.cross_sentence)
+toolbox.register("mutate", mutation.mutate_sentence)
+toolbox.register("select", fortin2013.selNSGA2)
+# toolbox.register("evaluate_sentence", evaluate.evaluate_sentence)
+# toolbox.register("mate_sentence", crossover.cross_sentence)
+# toolbox.register("mutate_sentence", mutation.mutate_sentence, indpb=0.10)
+# toolbox.register("preselect_sentence", fortin2013.selTournamentFitnessDCD)
+# toolbox.register("select_bar", fortin2013.selNSGA2)
+
+
+def evolve_bar(seed=None):
     random.seed(seed)
-    NGEN = 50
+
+    NGEN = 10
     MU = 100
     CXPB = 0.9
 
@@ -113,16 +128,43 @@ def main(seed=None):
     return pop, logbook
 
 
+def evolve_sentence(seed=None):
+    random.seed(seed)
+
+    NGEN = 50
+    MU, LAMBDA = 50, 100
+    CXPB = 0.9
+    MUTPB = 0.1
+
+    stats = tools.Statistics(lambda ind: ind.fitness.values)
+    stats.register("avg", np.mean)
+    stats.register("std", np.std)
+    stats.register("max", np.max)
+    stats.register("min", np.min)
+
+    logbook = tools.Logbook()
+    logbook.header = "gen", "evals", "std", "min", "avg", "max"
+
+    pop = toolbox.pop_sentence(n=MU)
+
+    pop, logbook = algorithms.eaMuPlusLambda(pop, toolbox, MU, LAMBDA, cxpb=CXPB,
+                                         mutpb=MUTPB, ngen=NGEN,  stats=stats)
+    return pop, logbook
+
+
 if __name__ == '__main__':
-    pop, log = main()
+    init()
+    BAR_POOL, log_bar = evolve_bar()
     # print(
     #     "Best individual is: {}\n with fitness: {}".format(hof[0],
     #                                                        hof[0].fitness))
-    bar_list = {bar for bar in pop}
+    pop_sentence, log_sentence = evolve_sentence()
+
+    bar_list = {bar for bar in BAR_POOL}
     print(len(bar_list))
 
     track = Track()
-    for i, bar in enumerate(tools.selRoulette(pop, 16)):
+    for i, bar in enumerate(tools.selRoulette(BAR_POOL, 16)):
         print(bar.fitness.values)
         track.add_bar(bar)
 

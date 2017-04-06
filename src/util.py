@@ -32,9 +32,7 @@ def get_names_octaves_durations(bar):
 
 
 def get_combination_order2(seq_obj):
-    ps = seq_obj[:-1]
-    ns = seq_obj[1:]
-    return [(p, n) for p, n in zip(ps, ns)]
+    return [(p, n) for p, n in zip(seq_obj[:-1], seq_obj[1:])]
 
 
 def is_monotone(L):

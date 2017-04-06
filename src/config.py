@@ -259,7 +259,3 @@ markov_table_rank = pd.read_csv("statics/pitch_markov_table_rank.csv", index_col
 # with open("statics/pitch_markov_table_rank.txt") as f:
 #     markov_table_rank = json.load(f)
 
-
-def init():
-    global BAR_POOL
-    BAR_POOL = []

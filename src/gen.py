@@ -8,7 +8,6 @@ import numpy as np
 from mingus.containers import Note
 
 import util
-from config import BAR_POOL
 from config import duration_frequencies_hard_code as duration_frequencies
 from config import new_pitch_frequencies_ls as pitch_frequencies
 
@@ -64,11 +63,14 @@ def init_bar(container, **kwargs):
     return bar
 
 
-def get_bar(bars):
-    return random.SystemRandom().choice(bars)
+def get_bar(bars_pool):
+    return random.SystemRandom().choice(bars_pool)
 
 
-def init_sentence():
-    sentence = []
+def init_sentence(container, *args, **kwargs):
+    sentence = container()
+    bars_pool = kwargs.get("bars_pool")
+    sentence.bars_pool = bars_pool
     for i in xrange(4):
-        sentence.append(get_bar(BAR))
+        sentence.append(get_bar(sentence.bars_pool))
+    return sentence

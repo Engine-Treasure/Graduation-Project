@@ -17,10 +17,10 @@ def mutate_bar(individual, indpb):
     return func(individual, indpb)
 
 
-def mutate_sentence(individual, indpb):
-    for i in individual:
-        if random.random() < indpb:
-            individual[i] = gen.get_bar()
+def mutate_sentence(individual):
+    for i in xrange(len(individual)):
+        if random.random() < 0.5:
+            individual[i] = gen.get_bar(individual.bars_pool)
     return individual,
 
 

@@ -40,8 +40,9 @@ def cross_bar(ind1, ind2):
 
 
 def cross_sentence(ind1, ind2):
+    """交叉会改变乐句包含的小节数啊"""
     func = getattr(tools, random.choice(__method__))
-    ind1, ind2 = func(ind1, ind2) if func == tools.cxUniform \
+    ind1, ind2 = func(ind1, ind2) if func != tools.cxUniform \
         else func(ind1, ind2, 0.5)
     return ind1, ind2
 

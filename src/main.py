@@ -18,15 +18,13 @@ from mingus.containers import Bar, Note, Track, Composition
 from mingus.midi import midi_file_out
 
 import util
-import gen
+from gen import init_bar, init_sentence, get_bar
 import evaluate
-from config import init
 import fortin2013
 from goperator import crossover, mutation, selection
 
 __author__ = "kissg"
 __date__ = "2017-03-10"
-
 
 SENTENCE_SIZE = 4  # 乐句包含的小节数
 
@@ -34,15 +32,14 @@ creator.create("BarFitness", base.Fitness, weights=(1.0, 1.0, 1.0, 1.0, 1.0,
                                                     1.0, 1.0))
 creator.create("Bar", Bar, fitness=creator.BarFitness)
 
-creator.create("SentenceFitness", base.Fitness, weights=(1.0,))
-creator.create("Sentence", list, fitness=creator.SentenceFitness)
+creator.create("SentenceFitness", base.Fitness, weights=(1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0))
+creator.create("Sentence", list, fitness=creator.SentenceFitness, bars_pool=[])
 
 toolbox = base.Toolbox()
 # 此处随机生成种群的个体
 # 注: toolbox.register(alias, func, args_for_func)
-toolbox.register("bar", gen.init_bar, creator.Bar, key="C", meter=(4, 4))
+toolbox.register("bar", init_bar, creator.Bar, key="C", meter=(4, 4))
 toolbox.register("pop_bar", tools.initRepeat, list, toolbox.bar)
-
 
 toolbox.register("evaluate_bar", evaluate.evaluate_bar)
 toolbox.register("mate_bar", crossover.cross_bar)
@@ -52,14 +49,6 @@ toolbox.register("select_bar", fortin2013.selNSGA2)
 # toolbox.register("select", tools.selTournament, tournsize=100)
 
 
-toolbox.register("sentence", gen.init_sentence)
-toolbox.register("pop_sentence", tools.initRepeat, list, toolbox.sentence)
-
-
-toolbox.register("evaluate", evaluate.evaluate_sentence)
-toolbox.register("mate", crossover.cross_sentence)
-toolbox.register("mutate", mutation.mutate_sentence)
-toolbox.register("select", fortin2013.selNSGA2)
 # toolbox.register("evaluate_sentence", evaluate.evaluate_sentence)
 # toolbox.register("mate_sentence", crossover.cross_sentence)
 # toolbox.register("mutate_sentence", mutation.mutate_sentence, indpb=0.10)
@@ -146,18 +135,27 @@ def evolve_sentence(seed=None):
     logbook.header = "gen", "evals", "std", "min", "avg", "max"
 
     pop = toolbox.pop_sentence(n=MU)
-
     pop, logbook = algorithms.eaMuPlusLambda(pop, toolbox, MU, LAMBDA, cxpb=CXPB,
-                                         mutpb=MUTPB, ngen=NGEN,  stats=stats)
+                                             mutpb=MUTPB, ngen=NGEN, stats=stats)
     return pop, logbook
 
 
 if __name__ == '__main__':
-    init()
-    BAR_POOL, log_bar = evolve_bar()
+    bars_pool, log_bar = evolve_bar()
     # print(
     #     "Best individual is: {}\n with fitness: {}".format(hof[0],
     #                                                        hof[0].fitness))
+    print(bars_pool)
+    print("bars_pool")
+    toolbox.register("sentence", init_sentence, creator.Sentence, get_bar, bars_pool=bars_pool)
+    toolbox.register("pop_sentence", tools.initRepeat, list, toolbox.sentence)
+
+    toolbox.register("evaluate", evaluate.evaluate_sentence)
+    toolbox.register("mate", crossover.cross_sentence)
+    toolbox.register("mutate", mutation.mutate_sentence)
+    toolbox.register("select", fortin2013.selNSGA2)
+
+
     pop_sentence, log_sentence = evolve_sentence()
 
     bar_list = {bar for bar in BAR_POOL}

@@ -27,16 +27,16 @@ def grade_intervals(notes_pair):
     """
     itv = intervals.determine(*notes_pair)
     if "unison" in itv:  # 纯一度, 纯八度, 缺少变化
-        return 1
+        return 0.2
     elif itv in ("perfect fifth", "perfect fourth"):
-        return 5
+        return 1.0
     elif itv in ("major third", "minor third", "major sixth", "minor sixth"):
-        return 3
+        return 0.6
     elif itv in ("major second", "minor second", "major seventh",
                  "minor seventh"):
-        return -1
+        return -0.2
     else:
-        return -2
+        return -0.4
 
 
 def grade_octave(octaves_pair):
@@ -74,7 +74,7 @@ def grade_pitch_change(bar):
     对整体音高变化的打分 - 单调变化或不变的音高, 扣分
     """
     # todo
-    pitches = [int(note[2][0]) for note in bar if note[2] is not None]
+    pitches = [int(note[2][0]) if note[2] is not None else None for note in bar]
     return -1 if util.is_monotone(pitches) else 1
 
 
@@ -92,11 +92,11 @@ def grade_bar_length(bar):
     if length in [4]:
         return 1.0
     elif length in [3, 5]:
-        return 0.7
+        return 0.5
     elif length in [2, 6]:
-        return 0.3
+        return 0.0
     else:  # 一个小节中音符过多，扣分
-        return -0.2
+        return -0.5
 
 
 def grade_internal_chords(bar):
@@ -129,7 +129,7 @@ def evaluate_bar(bar):
     grade_of_markov = map(grade_markov, name_octave_combinations)
 
     # 评分求和, 并标准化为 0~1.0, scaling
-    grade_of_intervals = sum(grade_of_intervals) / 10 / len(grade_of_intervals)
+    grade_of_intervals = sum(grade_of_intervals) / len(grade_of_intervals)
     grade_of_octave = sum(grade_of_octave) / len(grade_of_octave)
     grade_of_duration = sum(grade_of_duration) / len(grade_of_duration)
     grade_of_markov = sum(grade_of_markov) / len(grade_of_markov)
@@ -139,10 +139,6 @@ def evaluate_bar(bar):
     grade_of_duration_change = grade_duration_change(bar)
     grade_of_bar_length = grade_bar_length(bar)
 
-    print(
-        grade_of_intervals, grade_of_octave, grade_of_duration, grade_of_markov,
-        grade_of_pitch_change,
-        grade_of_duration_change, grade_of_bar_length)
     return grade_of_intervals, grade_of_octave, grade_of_duration, grade_of_markov, \
            grade_of_pitch_change, grade_of_duration_change, grade_of_bar_length
     # simply mean

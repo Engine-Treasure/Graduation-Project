@@ -8,7 +8,8 @@ import numpy as np
 from mingus.containers import Note
 
 import util
-from config import duration_frequencies_hard_code as duration_frequencies
+# from config import duration_frequencies_hard_code as duration_frequencies
+from config import duration_frequencies as duration_frequencies
 from config import new_pitch_frequencies_ls as pitch_frequencies
 
 __author__ = "kissg"

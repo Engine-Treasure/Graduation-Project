@@ -42,6 +42,7 @@ def is_monotone(L):
 
 def strictly_increasing(L):
     """严格单调递增"""
+    # None as 0
     return all(x < y for x, y in zip(L[:-1], L[1:]))
 
 

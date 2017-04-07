@@ -44,6 +44,13 @@ def cross_sentence(ind1, ind2):
     func = getattr(tools, random.choice(__method__))
     ind1, ind2 = func(ind1, ind2) if func != tools.cxUniform \
         else func(ind1, ind2, 0.5)
+    if len(ind1) != len(ind2):
+        if len(ind1) < len(ind2):
+            ind1, ind2 = ind2, ind1
+        while len(ind1) != 4:
+            # make sure the two individuals have the same length
+            ind2.append(ind1.pop())
+
     return ind1, ind2
 
 

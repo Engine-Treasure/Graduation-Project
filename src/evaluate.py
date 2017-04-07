@@ -220,22 +220,18 @@ def grade_name_change_similarity(name_change_pair):
 
 def evaluate_sentence(sentence):
     array_length = map(len, sentence)
-    try:
-        array_names, array_octaves, array_durations = zip(
-            *map(util.get_names_octaves_durations, sentence))
-    except:
-        print(sentence)
-        raise
+    array_names, array_octaves, array_durations = zip(
+        *map(util.get_names_octaves_durations, sentence))
     array_name_changes = map(get_name_change, array_names)
     array_octave_change = map(get_octave_change, array_octaves)
     array_duration_change = map(get_duration_change, array_durations)
 
     al_combinations, an_combinations, ao_combinations, ad_combinations, \
-    anc_combinations, aoc_combinations, adc_combinations = map(
-        util.get_combination_order2, (array_length, array_names,
-                                      array_octaves, array_durations,
-                                      array_name_changes, array_octave_change,
-                                      array_duration_change))
+        anc_combinations, aoc_combinations, adc_combinations = map(
+            util.get_combination_order2, (array_length, array_names,
+                                          array_octaves, array_durations,
+                                          array_name_changes, array_octave_change,
+                                          array_duration_change))
 
     grade_of_length_similarity = map(grade_length_similarity, al_combinations)
     grade_of_name_similarity = map(grade_name_similarity, an_combinations)
@@ -249,23 +245,17 @@ def evaluate_sentence(sentence):
     grade_of_dct_similarity = map(grade_nod_change_trend_similarity,
                                   adc_combinations)
 
-    try:
-        g_length_similarity, g_name_similarity, g_octave_similarity, \
+    g_length_similarity, g_name_similarity, g_octave_similarity, \
         g_duration_similarity, g_nct_similarity, g_oct_similarity, \
         g_dct_similarity = [sum(x) / len(x) for x in [
             grade_of_length_similarity, grade_of_name_similarity,
             grade_of_octave_similarity, grade_of_duration_similarity,
             grade_of_nct_similarity, grade_of_oct_similarity,
-            grade_of_dct_similarity] if x != 0]
-    except:
-        print(grade_of_length_similarity, grade_of_name_similarity, grade_of_octave_similarity,
-        grade_of_duration_similarity, grade_of_nct_similarity, grade_of_oct_similarity,
-        grade_of_dct_similarity)
-        raise
+            grade_of_dct_similarity] if len(x) != 0]
 
     return g_length_similarity, g_name_similarity, g_octave_similarity, \
-           g_duration_similarity, g_nct_similarity, g_oct_similarity, \
-           g_dct_similarity
+        g_duration_similarity, g_nct_similarity, g_oct_similarity, \
+        g_dct_similarity
 
 
 def get_name_change(array_name):

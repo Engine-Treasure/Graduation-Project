@@ -117,6 +117,67 @@ def evolve_bar(seed=None):
     return pop, logbook
 
 
+def evolve(seed=None):
+    random.seed(seed)
+
+    NGEN = 10
+    MU = 100
+    CXPB = 0.9
+
+    stats = tools.Statistics(lambda ind: ind.fitness.values)
+    stats.register("avg", np.mean)
+    stats.register("std", np.std)
+    stats.register("max", np.max)
+    stats.register("min", np.min)
+
+    logbook = tools.Logbook()
+    logbook.header = "gen", "evals", "std", "min", "avg", "max"
+
+    pop = toolbox.pop_sentence(n=MU)
+
+    # Evaluate the individuals with an invalid fitness
+    invalid_ind = [ind for ind in pop if not ind.fitness.valid]
+    fitnesses = toolbox.map(toolbox.evaluate, invalid_ind)
+    for ind, fit in zip(invalid_ind, fitnesses):
+        ind.fitness.values = fit
+
+    # This is just to assign the crowding distance to the individuals
+    # no actual selection is done
+    pop = toolbox.select(pop, len(pop))
+
+    record = stats.compile(pop)
+    logbook.record(gen=0, evals=len(invalid_ind), **record)
+    print(logbook.stream)
+
+    # Begin the generational process
+    for gen in range(1, NGEN):
+        # Vary the population
+        offspring = toolbox.preselect(pop, len(pop))
+        offspring = [toolbox.clone(ind) for ind in offspring]
+
+        for ind1, ind2 in zip(offspring[::2], offspring[1::2]):
+            if random.random() <= CXPB:
+                toolbox.mate(ind1, ind2)
+
+            toolbox.mutate(ind1)
+            toolbox.mutate(ind2)
+            del ind1.fitness.values, ind2.fitness.values
+
+        # Evaluate the individuals with an invalid fitness
+        invalid_ind = [ind for ind in offspring if not ind.fitness.valid]
+        fitnesses = toolbox.map(toolbox.evaluate, invalid_ind)
+        for ind, fit in zip(invalid_ind, fitnesses):
+            ind.fitness.values = fit
+
+        # Select the next generation population
+        pop = toolbox.select(pop + offspring, MU)
+        record = stats.compile(pop)
+        logbook.record(gen=gen, evals=len(invalid_ind), **record)
+        print(logbook.stream)
+
+    return pop, logbook
+
+
 def evolve_sentence(seed=None):
     random.seed(seed)
 
@@ -135,8 +196,10 @@ def evolve_sentence(seed=None):
     logbook.header = "gen", "evals", "std", "min", "avg", "max"
 
     pop = toolbox.pop_sentence(n=MU)
-    pop, logbook = algorithms.eaMuPlusLambda(pop, toolbox, MU, LAMBDA, cxpb=CXPB,
-                                             mutpb=MUTPB, ngen=NGEN, stats=stats)
+    pop, logbook = algorithms.eaSimple(pop, toolbox, cxpb=CXPB,
+                                       mutpb=MUTPB, ngen=NGEN, stats=stats)
+    # pop, logbook = algorithms.eaMuPlusLambda(pop, toolbox, MU, LAMBDA, cxpb=CXPB,
+    #                                          mutpb=MUTPB, ngen=NGEN, stats=stats)
     return pop, logbook
 
 
@@ -145,6 +208,13 @@ if __name__ == '__main__':
     # print(
     #     "Best individual is: {}\n with fitness: {}".format(hof[0],
     #                                                        hof[0].fitness))
+    track2 = Track()
+    for i, bar in enumerate(tools.selRoulette(bars_pool, 16)):
+        track2.add_bar(bar)
+
+    lp.to_pdf(lp.from_Track(track2), "top_bar.pdf")
+
+    midi_file_out.write_Track("top_bar.mid", track2)
     print(bars_pool)
     print("bars_pool")
     toolbox.register("sentence", init_sentence, creator.Sentence, get_bar, bars_pool=bars_pool)
@@ -153,22 +223,20 @@ if __name__ == '__main__':
     toolbox.register("evaluate", evaluate.evaluate_sentence)
     toolbox.register("mate", crossover.cross_sentence)
     toolbox.register("mutate", mutation.mutate_sentence)
+    toolbox.register("preselect", fortin2013.selTournamentFitnessDCD)
     toolbox.register("select", fortin2013.selNSGA2)
+    # toolbox.register("select", tools.selTournament, tournsize=3)
 
-
-    pop_sentence, log_sentence = evolve_sentence()
-
-    bar_list = {bar for bar in BAR_POOL}
-    print(len(bar_list))
+    pop_sentence, log_sentence = evolve()
 
     track = Track()
-    for i, bar in enumerate(tools.selRoulette(BAR_POOL, 16)):
-        print(bar.fitness.values)
-        track.add_bar(bar)
+    for i, sentence in enumerate(tools.selRoulette(pop_sentence, 4)):
+        for bar in sentence:
+            track.add_bar(bar)
 
-    lp.to_pdf(lp.from_Track(track), "top.pdf")
+    lp.to_pdf(lp.from_Track(track), "top_sentence.pdf")
 
-    midi_file_out.write_Track("top.mid", track)
+    midi_file_out.write_Track("top_sentence.mid", track)
 
 
     # track2 = Track()

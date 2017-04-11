@@ -2,22 +2,24 @@
 
 from __future__ import division
 
+import os
 import random
-from math import ceil
 
 import mingus.extra.lilypond as lp
 import numpy as np
+from deap import algorithms
 from deap import base
 from deap import creator
 from deap import tools
-from deap import algorithms
-from mingus.containers import Bar, Note, Track, Composition
-from mingus.midi import midi_file_out
+from mingus.containers import Bar, Track
+from mingus.midi import midi_file_out, fluidsynth
 
-from gen import init_bar, init_sentence, get_bar
 import evaluate
 import fortin2013
-from goperator import crossover, mutation, selection
+from gen import init_bar, init_sentence, get_bar
+from abcparse import parse_abc
+from goperator import crossover, mutation
+from common import construct_bars
 
 __author__ = "kissg"
 __date__ = "2017-03-10"
@@ -55,7 +57,7 @@ toolbox.register("select_bar", fortin2013.selNSGA2)
 # toolbox.register("select_bar", fortin2013.selNSGA2)
 
 
-def evolve_bar(seed=None):
+def evolve_bar(pop=None, seed=None):
     random.seed(seed)
 
     NGEN = 100
@@ -73,7 +75,8 @@ def evolve_bar(seed=None):
     logbook = tools.Logbook()
     logbook.header = "gen", "evals", "std", "min", "avg", "max"
 
-    pop = toolbox.pop_bar(n=MU)
+    if not pop:
+        pop = toolbox.pop_bar(n=MU)
 
     # Evaluate the individuals with an invalid fitness
     invalid_ind = [ind for ind in pop if not ind.fitness.valid]
@@ -224,7 +227,25 @@ def evolve_sentence(seed=None):
 
 
 if __name__ == '__main__':
-    bars_pool, log_bar = evolve_bar()
+    fluidsynth.init(sf2="/home/kissg/Developing/Graduation-Project/src/statics/soundfonts/JR_elepiano.sf2", driver="alsa")
+    key, meter, notes = parse_abc("/home/kissg/Developing/Graduation-Project/data/ABCs/9999.abc")
+    notes, durations = zip(*[(note[0].rstrip("*"), note[1]) for note in notes])
+    notes = [note[:-1].upper() + "-" + note[-1] for note in notes]
+
+    print(key, meter, notes, durations)
+
+    pop = construct_bars(notes, durations, container=creator.Bar)
+    track3 = Track()
+    for i, bar in enumerate(pop, 16):
+        track3.add_bar(bar)
+    lp.to_pdf(lp.from_Track(track3), "origin.pdf")
+
+    midi_file_out.write_Track("origin.mid", track3)
+    # for p in pop:
+    #     print(p)
+    #     fluidsynth.play_Bar(p)
+
+    bars_pool, log_bar = evolve_bar(pop)
     # print(
     #     "Best individual is: {}\n with fitness: {}".format(hof[0],
     #                                                        hof[0].fitness))
@@ -236,6 +257,7 @@ if __name__ == '__main__':
     lp.to_pdf(lp.from_Track(track2), "top_bar.pdf")
 
     midi_file_out.write_Track("top_bar.mid", track2)
+    exit(0)
 
     toolbox.register("sentence", init_sentence, creator.Sentence, get_bar,
                      bars_pool=bars_pool)

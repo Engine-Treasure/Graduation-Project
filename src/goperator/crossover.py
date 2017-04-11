@@ -10,7 +10,7 @@ import random
 from mingus.containers import Note, Bar
 from deap import tools
 
-from src.util import remove_at
+from src.common import remove_at
 from src.gen import gen_pitch, gen_duration
 
 
@@ -25,7 +25,7 @@ def cross_bar(ind1, ind2):
             while not ind1.is_full():
                 # todo - place rest
                 ind1.place_notes(gen_pitch(),
-                                 gen_duration(max=int(ceil(ind1.value_left()))))
+                                 gen_duration(_max=int(ceil(ind1.value_left()))))
 
     if not ind2.is_full():
         if random.random() < 0.05:
@@ -34,7 +34,7 @@ def cross_bar(ind1, ind2):
             while not ind2.is_full():
                 # todo - place rest
                 ind2.place_notes(gen_pitch(),
-                                 gen_duration(max=int(ceil(ind2.value_left()))))
+                                 gen_duration(_max=int(ceil(ind2.value_left()))))
 
     return ind1, ind2
 

@@ -11,7 +11,6 @@ def get_geometric_progression_of_2(start, stop):
     instead of the the blow one: multiply and power.
     :param start:
     :param stop:
-    :param a:
     :return:
     """
     return filter(lambda x: not (x - 1) & x, range(start, stop + 1))
@@ -21,17 +20,7 @@ def get_geometric_progression_with_length(start, a, length):
     return [start * a ** (n - 1) for n in range(1, length + 1)]
 
 
-def get_names_octaves_durations(bar):
-    """
-    Return a tuple lists: note names, octaves, durations
-    """
-    _, durations, notes = zip(*bar)
-    names, octaves = zip(
-        *((no[0].name, no[0].octave) for no in notes if no is not None))
-    return names, octaves, durations
-
-
-def get_combination_order2(seq_obj):
+def get_order_pair(seq_obj):
     return [(p, n) for p, n in zip(seq_obj[:-1], seq_obj[1:])]
 
 
@@ -59,13 +48,6 @@ def non_increasing(L):
 def non_decreasing(L):
     """非严格单调递增"""
     return all(x <= y for x, y in zip(L[:-1], L[1:]))
-
-
-def remove_at(bar, pos):
-    """Remove the NoteContainer after pos in the Bar."""
-    for i in range(len(bar) - pos):
-        bar.remove_last_entry()
-    return bar
 
 
 if __name__ == '__main__':

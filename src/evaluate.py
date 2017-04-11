@@ -9,7 +9,8 @@ from mingus.core import intervals
 from mingus.containers import Note
 
 import util
-from config import markov_table_rank
+import common
+from statistics import markov_table_rank
 
 __author__ = "kissg"
 __date__ = "2017-03-30"
@@ -104,23 +105,23 @@ def grade_internal_chords(bar):
     对调内三/七和弦的打分
     """
     # todo
-    # names, octaves, durations = util.GET_NAMES_OCTAVES_DURATIONS(bar)
+    # names, octaves, durations = common.GET_NAMES_OCTAVES_DURATIONS(bar)
     pass
 
 
 def evaluate_bar(bar):
     # todo - kinds of evalute ways
-    names, octaves, durations = util.get_names_octaves_durations(bar)
+    names, octaves, durations = common.get_names_octaves_durations(bar)
 
     # 可能生成了单音符的小节, 直接返回 1 分, 不做评价
     if len(names) == 1:
         return (0.0,) * 7
     # 音名, 八度, 时值的组合, 每一对都是前后组合, 有别于 Python 自带的 Combinations
     name_combinations, octave_combinations, duration_combinations = map(
-        util.get_combination_order2, (names, octaves, durations))
+        util.get_order_pair, (names, octaves, durations))
 
     nos = [n + "-" + str(o) for n, o in zip(names, octaves)]
-    name_octave_combinations = util.get_combination_order2(nos)
+    name_octave_combinations = util.get_order_pair(nos)
 
     # 以下打分是针对每一对组合的
     grade_of_intervals = map(grade_intervals, name_combinations)
@@ -217,17 +218,17 @@ def grade_name_change_similarity(name_change_pair):
 def evaluate_sentence(sentence):
     array_length = map(len, sentence)
     array_names, array_octaves, array_durations = zip(
-        *map(util.get_names_octaves_durations, sentence))
+        *map(common.get_names_octaves_durations, sentence))
     array_name_changes = map(get_name_change, array_names)
     array_octave_change = map(get_octave_change, array_octaves)
     array_duration_change = map(get_duration_change, array_durations)
 
     al_combinations, an_combinations, ao_combinations, ad_combinations, \
         anc_combinations, aoc_combinations, adc_combinations = map(
-            util.get_combination_order2, (array_length, array_names,
-                                          array_octaves, array_durations,
-                                          array_name_changes, array_octave_change,
-                                          array_duration_change))
+            util.get_order_pair, (array_length, array_names,
+                                  array_octaves, array_durations,
+                                  array_name_changes, array_octave_change,
+                                  array_duration_change))
 
     grade_of_length_similarity = map(grade_length_similarity, al_combinations)
     grade_of_name_similarity = map(grade_name_similarity, an_combinations)
@@ -242,16 +243,16 @@ def evaluate_sentence(sentence):
                                   adc_combinations)
 
     g_length_similarity, g_name_similarity, g_octave_similarity, \
-        g_duration_similarity, g_nct_similarity, g_oct_similarity, \
-        g_dct_similarity = [sum(x) / len(x) for x in [
-            grade_of_length_similarity, grade_of_name_similarity,
-            grade_of_octave_similarity, grade_of_duration_similarity,
-            grade_of_nct_similarity, grade_of_oct_similarity,
-            grade_of_dct_similarity] if len(x) != 0]
+    g_duration_similarity, g_nct_similarity, g_oct_similarity, \
+    g_dct_similarity = [sum(x) / len(x) for x in [
+        grade_of_length_similarity, grade_of_name_similarity,
+        grade_of_octave_similarity, grade_of_duration_similarity,
+        grade_of_nct_similarity, grade_of_oct_similarity,
+        grade_of_dct_similarity] if len(x) != 0]
 
     return g_length_similarity, g_name_similarity, g_octave_similarity, \
-        g_duration_similarity, g_nct_similarity, g_oct_similarity, \
-        g_dct_similarity
+           g_duration_similarity, g_nct_similarity, g_oct_similarity, \
+           g_dct_similarity
 
 
 def get_name_change(array_name):

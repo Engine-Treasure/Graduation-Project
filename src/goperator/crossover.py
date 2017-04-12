@@ -14,7 +14,7 @@ from src.common import remove_at
 from src.gen import gen_pitch, gen_duration
 
 
-def cross_bar(ind1, ind2):
+def cross_bar(ind1, ind2, ppb=None, dpb=None):
     func = getattr(BarCrossover, random.choice(__method__))
     ind1, ind2 = func(ind1, ind2)
 
@@ -24,8 +24,9 @@ def cross_bar(ind1, ind2):
         else:
             while not ind1.is_full():
                 # todo - place rest
-                ind1.place_notes(gen_pitch(),
-                                 gen_duration(_max=int(ceil(ind1.value_left()))))
+                ind1.place_notes(gen_pitch(p=ppb),
+                                 gen_duration(_max=int(ceil(ind1.value_left())),
+                                              p=dpb))
 
     if not ind2.is_full():
         if random.random() < 0.05:
@@ -33,8 +34,9 @@ def cross_bar(ind1, ind2):
         else:
             while not ind2.is_full():
                 # todo - place rest
-                ind2.place_notes(gen_pitch(),
-                                 gen_duration(_max=int(ceil(ind2.value_left()))))
+                ind2.place_notes(gen_pitch(p=ppb),
+                                 gen_duration(_max=int(ceil(ind2.value_left())),
+                                              p=dpb))
 
     return ind1, ind2
 
@@ -56,7 +58,7 @@ def cross_sentence(ind1, ind2):
 
 class BarCrossover(object):
     @classmethod
-    def cxOnePoint(cls, ind1, ind2):
+    def cxOnePoint(cls, ind1, ind2, ppd=None, dpb=None):
         size = min(len(ind1), len(ind2))
         cxpoint = random.randint(1, size)
 
@@ -74,7 +76,7 @@ class BarCrossover(object):
         return ind1, ind2
 
     @classmethod
-    def cxTwoPoint(cls, ind1, ind2):
+    def cxTwoPoint(cls, ind1, ind2, ppd=None, dpb=None):
         size = min(len(ind1), len(ind2))
         cxpoint1 = random.randint(1, size)
         try:
@@ -112,7 +114,7 @@ class BarCrossover(object):
         return ind1, ind2
 
     @classmethod
-    def cxMessyOnePoint(cls, ind1, ind2):
+    def cxMessyOnePoint(cls, ind1, ind2, ppd=None, dpb=None):
 
         cxpoint1 = random.randint(0, len(ind1))
         cxpoint2 = random.randint(0, len(ind2))
@@ -131,7 +133,7 @@ class BarCrossover(object):
         return ind1, ind2
 
     @classmethod
-    def cxUniform(cls, ind1, ind2, indpb=0.5):
+    def cxUniform(cls, ind1, ind2, indpb=0.5, ppd=None, dpb=None):
         """交换某位音名"""
         size = min(len(ind1), len(ind2))
         for i in xrange(size):
@@ -140,7 +142,7 @@ class BarCrossover(object):
         return ind1, ind2
 
     @classmethod
-    def cxBlend(cls, ind1, ind2):
+    def cxBlend(cls, ind1, ind2, ppd=None, dpb=None):
         pass
 
 

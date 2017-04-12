@@ -96,11 +96,8 @@ if __name__ == "__main__":
         elif key == "\r":
             durations.append(
                 time2duration(time.time() - t, STANDARD_DURATION))
-            construct_bars(notes, durations)
-            result = count(notes, durations)
-            for r in result:
-                print(r)
-            exit(0)
+            bars = construct_bars(notes, durations)
+            probabilities = count(notes, durations)
             del notes[:]
             del durations[:]
             t = 0

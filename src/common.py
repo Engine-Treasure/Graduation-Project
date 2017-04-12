@@ -1,13 +1,23 @@
 # -*- coding: utf-8 -*-
 
+from __future__ import division
+
+from copy import deepcopy
+from collections import Counter, OrderedDict
+
+from mingus.containers import Bar, Note
+
+from util import get_geometric_progression_of_2
+
 __author__ = "kissg"
 __date__ = "2017-04-11"
 
+PITCH_PROBABILITY = None
 
-from copy import deepcopy
-from collections import Counter
-
-from mingus.containers import Bar
+name2int = {
+    "C": 0, "C#": 1, "D": 2, "D#": 3, "E": 4, "F": 5,
+    "F#": 6, "G": 7, "G#": 8, "A": 9, "A#": 10, "B": 11
+}
 
 
 def construct_bars(notes, durations, container=Bar):
@@ -45,14 +55,54 @@ def construct_bars(notes, durations, container=Bar):
 
 
 def count(notes, durations):
+    """
+    :param notes: list of notes, a note is a Note instance
+    :param durations: list of durations
+    :return: return a tuple of pitch_probabilities and duration_probabilities
+    """
+    # note name to pitch
     print(notes)
-    print(Counter(notes))
-    print(Counter(durations))
-    return {
-        "note": Counter(notes),
-        "duration": Counter(durations)
-    }
+    if isinstance(notes[0], str):
+        names, octaves = zip(*(note.split("-") for note in notes))
+        pitchs = [
+            int(octave) * 12 + name2int[name] for name, octave in zip(names, octaves)
+            ]
+    elif isinstance(notes[0], Note):
+        pitchs = [note.octave * 12 + name2int[note.name] for note in notes]
+    else:
+        raise TypeError
 
+    durations = [int(d) for d in durations]
+
+    pitchs = filter(lambda x: x in range(1, 97), pitchs)
+    durations = filter(lambda x: x in get_geometric_progression_of_2(1, 32), durations)
+
+    pitch_counter = Counter(pitchs)
+    print(pitch_counter)
+    duration_counter = Counter(durations)
+    print(duration_counter)
+
+    pitch_total = len(pitchs)
+    duration_total = len(durations)
+
+    pitch_probability = OrderedDict(
+        sorted({k: v / pitch_total for k, v in
+                pitch_counter.iteritems()}.iteritems(), key=lambda t: t[0]))
+    duration_probability = OrderedDict(
+        sorted({k: v / duration_total for k, v in
+                duration_counter.iteritems()}.iteritems(), key=lambda t: t[0]))
+
+    pitch_probability_list = [
+        pitch_probability[k] if k in pitch_counter else 0 for k in xrange(9, 97)
+        ]
+
+    duration_probability_list = [
+        duration_probability[k] if k in duration_counter else 0
+        for k in get_geometric_progression_of_2(1, 32)
+        ]
+    print(duration_probability_list)
+
+    return pitch_probability_list, duration_probability_list
 
 
 def remove_at(bar, pos):
@@ -70,5 +120,3 @@ def get_names_octaves_durations(bar):
     names, octaves = zip(
         *((no[0].name, no[0].octave) for no in notes if no is not None))
     return names, octaves, durations
-
-

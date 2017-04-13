@@ -3,7 +3,7 @@
 __author__ = "kissg"
 __date__ = "2017-03-22"
 
-import json
+import os
 
 import pandas as pd
 
@@ -198,7 +198,8 @@ columns = [
     'F-6', 'E-6', 'D#-6', 'D-6', 'C#-6', 'C-6', 'B-5', 'A#-5', 'G-6', 'F#-6'
 ]
 
-markov_table_rank = pd.read_csv("statics/pitch_markov_table_rank.csv",
+markov_table_rank = pd.read_csv(os.path.join(os.path.dirname(__file__),
+                                             "statics/pitch_markov_table_rank.csv"),
                                 index_col=[0])
 # with open("statics/pitch_markov_table_rank.txt") as f:
 #     markov_table_rank = json.load(f)

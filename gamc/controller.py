@@ -2,19 +2,16 @@
 
 from __future__ import division
 
-import os
-import sys
 import json
+import os
 import time
-from copy import deepcopy
 
 import click
 from mingus.containers.note import Note, NoteFormatError
-from mingus.containers.bar import Bar
 from mingus.midi import fluidsynth
 
-
-from common import construct_bars, count
+from common import count
+from evolver import evolve_from_keyboard
 from txtimg import txtimg
 
 __author__ = "Engine"
@@ -49,12 +46,15 @@ def init(soundfont=soundfont, meter=meter, bpm=bpm, km_file=km_file,
     STANDARD_DURATION = basic_beat * 60 / bpm
 
 
-def play():
-    pass
+def play_bars(bars):
+    try:
+        for bar in bars:
+            fluidsynth.play_Bar(bar)
+    except KeyboardInterrupt:
+        pass
 
 
 def time2duration(t, standard_beat=2):
-    result = 1
     if t < 0.046875:
         result = standard_beat / 0.03125
     elif t < 0.09375:
@@ -80,13 +80,15 @@ def time2duration(t, standard_beat=2):
         return 1.0 if result < 1 else 32.0
 
 
-if __name__ == "__main__":
+def start():
     # suppose, 120 bpm
     init()
     # raw_input("Press any key to start...")  # waiting for any key press
 
     notes = []
     durations = []
+
+    global OCTAVE
 
     t = 0
     while True:
@@ -96,7 +98,8 @@ if __name__ == "__main__":
         elif key == "\r":
             durations.append(
                 time2duration(time.time() - t, STANDARD_DURATION))
-            bars = construct_bars(notes, durations)
+            evolved_pop, log = evolve_from_keyboard(notes, durations)
+            play_bars(evolved_pop)
             probabilities = count(notes, durations)
             del notes[:]
             del durations[:]
@@ -126,5 +129,8 @@ if __name__ == "__main__":
                 fluidsynth.play_Note(notes[-1])
             except (KeyError, NoteFormatError):
                 pass
+
+if __name__ == "__main__":
+    start()
 
 

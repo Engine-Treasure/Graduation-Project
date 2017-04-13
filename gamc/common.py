@@ -20,7 +20,7 @@ name2int = {
 }
 
 
-def construct_bars(notes, durations, container=Bar):
+def construct_bars(names, durations, container=Bar):
     """
     :param notes: sequences of notes
     :param durations: sequences of durations
@@ -29,22 +29,22 @@ def construct_bars(notes, durations, container=Bar):
     """
     bars = []
     bar = container()
-    for note, duration in zip(notes, durations):
-        print(note, duration)
+    for name, duration in zip(names, durations):
+        print(name, duration)
 
         if bar.is_full():
             bars.append(deepcopy(bar))
             bar = container()
-            bar.place_notes(notes=note, duration=duration)
+            bar.place_notes(notes=name, duration=duration)
         else:
             # add new note to bar
-            if bar.place_notes(notes=note, duration=duration):
+            if bar.place_notes(notes=name, duration=duration):
                 continue
             else:  # fail, because the new note is long than remainder of bar
                 bar.place_rest(bar.value_left())
                 bars.append(deepcopy(bar))  # complete current bar
                 bar = container()  # create new bar
-                bar.place_notes(notes=note, duration=duration)
+                bar.place_notes(notes=name, duration=duration)
 
     # run out of notes and durations, but the current bar is not full
     if not bar.is_full():
@@ -56,12 +56,11 @@ def construct_bars(notes, durations, container=Bar):
 
 def count(notes, durations):
     """
-    :param notes: list of notes, a note is a Note instance
+    :param notes: list of notes, a note is a Note instance or a str of note name
     :param durations: list of durations
     :return: return a tuple of pitch_probabilities and duration_probabilities
     """
     # note name to pitch
-    print(notes)
     if isinstance(notes[0], str):
         names, octaves = zip(*(note.split("-") for note in notes))
         pitchs = [
@@ -120,3 +119,6 @@ def get_names_octaves_durations(bar):
     names, octaves = zip(
         *((no[0].name, no[0].octave) for no in notes if no is not None))
     return names, octaves, durations
+
+
+

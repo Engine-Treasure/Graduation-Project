@@ -1,7 +1,6 @@
 # -*- coding: utf-8 -*-
 
-__author__ = "kissg"
-__date__ = "2017-03-29"
+from __future__ import absolute_import
 
 import random
 
@@ -9,10 +8,13 @@ from mingus.containers import Bar, Note
 
 from collections import Sequence
 
-from src import gen
+import gen
+
+__author__ = "kissg"
+__date__ = "2017-03-29"
 
 
-def mutate_bar(individual, indpb, ppb=None, dpb=None):
+def mutate_bar(individual, indpb=0.1, ppb=None, dpb=None):
     mutation_method = __method2__ if not ppb and not dpb else __method__
     func = getattr(BarMutation, random.choice(mutation_method))
     return func(individual, indpb, ppb, dpb)
@@ -27,7 +29,7 @@ def mutate_sentence(individual):
 
 class BarMutation(object):
     @classmethod
-    def mut_name(cls, individual, indpb, ppd=None, dpb=None):
+    def mut_name(cls, individual, indpb=0.1, ppd=None, dpb=None):
         # 不用 for x in individual 的原因是, 要最 individual 本身进行修改
         for i in xrange(len(individual)):
             if random.random() < indpb:
@@ -35,7 +37,7 @@ class BarMutation(object):
         return individual,
 
     @classmethod
-    def mut_augment(cls, individual, indpb, ppd=None, dpb=None):
+    def mut_augment(cls, individual, indpb=0.1, ppd=None, dpb=None):
         for i in xrange(len(individual)):
             if individual[i][2] is not None and random.random() < indpb:
                 individual[i][2][0].augment()  # Note.augment
@@ -44,7 +46,7 @@ class BarMutation(object):
             return individual,
 
     @classmethod
-    def mut_diminish(cls, individual, indpb, ppd=None, dpb=None):
+    def mut_diminish(cls, individual, indpb=0.1, ppd=None, dpb=None):
         for i in xrange(len(individual)):
             if individual[i][2] is not None and random.random() < indpb:
                 individual[i][2][0].diminish()  # Note.augment
@@ -52,7 +54,7 @@ class BarMutation(object):
         return individual,
 
     @classmethod
-    def mut_transpose(cls, individual, indpb, ppd=None, dpb=None):
+    def mut_transpose(cls, individual, indpb=0.1, ppd=None, dpb=None):
         for i in xrange(len(individual)):
             if individual[i][2] is not None and random.random() < indpb:
                 # transpose - 指定度数, 转换音名. 第二个参数决定升高还是降低
@@ -62,7 +64,7 @@ class BarMutation(object):
         return individual,
 
     @classmethod
-    def mut_duration(cls, individual, indpb, ppd=None, dpb=None):
+    def mut_duration(cls, individual, indpb=0.1, ppd=None, dpb=None):
         for i in xrange(len(individual) - 1, -1, -1):  # 从尾音符开始
             if random.random() < indpb:  # None, 休止符也有时值的概念
                 individual.change_note_duration(individual[i][0],

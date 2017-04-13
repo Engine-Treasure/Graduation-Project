@@ -1,17 +1,21 @@
 # -*- coding: utf-8 -*-
 
-__author__ = "kissg"
-__date__ = "2017-03-29"
 
-from math import ceil
+# from __future__ import absolute_import
 
 import random
+from math import ceil
 
-from mingus.containers import Note, Bar
+print(__name__)
+
 from deap import tools
+from mingus.containers import Note
 
-from src.common import remove_at
-from src.gen import gen_pitch, gen_duration
+from common import remove_at
+from gen import gen_pitch, gen_duration
+
+__author__ = "kissg"
+__date__ = "2017-03-29"
 
 
 def cross_bar(ind1, ind2, ppb=None, dpb=None):
@@ -146,5 +150,5 @@ class BarCrossover(object):
         pass
 
 
-__method__ = ["cxUniform"] # , "cxMessyOnePoint", "cxOnePoint", "cxTwoPoint"]
+__method__ = ["cxUniform"]  # , "cxMessyOnePoint", "cxOnePoint", "cxTwoPoint"]
 __all__ = ["cross_bar", "cross_sentence"]

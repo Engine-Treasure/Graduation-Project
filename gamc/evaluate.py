@@ -9,7 +9,7 @@ from mingus.core import intervals
 from mingus.containers import Note
 
 import util
-import common
+from common import get_names_octaves_durations
 from statistics import markov_table_rank
 
 __author__ = "kissg"
@@ -61,9 +61,10 @@ def grade_duration(durations_pair):
         return 1
 
 
-def grade_markov(notes_pair):
+def grade_markov(notes_pair, markov_table=None):
+    mtb = markov_table if markov_table else markov_table_rank
     try:
-        rank = markov_table_rank[notes_pair[0]][notes_pair[1]]
+        rank = mtb[notes_pair[0]][notes_pair[1]]
     except KeyError:  # 可能的异常是至少一个音高不在 markov table 中, 标记为异常音高, 打 0 分
         return -1
     else:
@@ -111,7 +112,7 @@ def grade_internal_chords(bar):
 
 def evaluate_bar(bar):
     # todo - kinds of evalute ways
-    names, octaves, durations = common.get_names_octaves_durations(bar)
+    names, octaves, durations = get_names_octaves_durations(bar)
 
     # 可能生成了单音符的小节, 直接返回 1 分, 不做评价
     if len(names) == 1:
@@ -206,19 +207,10 @@ def grade_nod_change_trend_similarity(nod_change_pair):
     return result if result > -1.0 else -1.0
 
 
-def grade_name_change_similarity(name_change_pair):
-    result = 1.0
-    cor_pair = zip(name_change_pair[0], name_change_pair[1])
-    for p1, p2 in cor_pair:
-        if p1 == p2:
-            continue
-    pass
-
-
 def evaluate_sentence(sentence):
     array_length = map(len, sentence)
     array_names, array_octaves, array_durations = zip(
-        *map(common.get_names_octaves_durations, sentence))
+        *map(get_names_octaves_durations, sentence))
     array_name_changes = map(get_name_change, array_names)
     array_octave_change = map(get_octave_change, array_octaves)
     array_duration_change = map(get_duration_change, array_durations)

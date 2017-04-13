@@ -1,10 +1,16 @@
 #!/usr/bin/env python
 
 """
-Module cloned from PySynth, used for parse abc file.
-"""
 
-"""
+###################################################################
+#                                                                 #
+#   IMPORTANT!!!                                                  #
+#                                                                 #
+#       This module cloned from mdoege's PySynth,                 #
+#       I have made a bit modification for my personal usage.     #
+#                                                                 #
+###################################################################
+
 Parse a file in ABC music notation format and render with PySynth.
 
 Usage:
@@ -279,7 +285,8 @@ def parse_abc(fn):
                     if meter == 'C':
                         meter = "4/4"
                 if 'K:' in l:
-                    key = l.split(':')[1].strip().replace('maj', '').replace('min', 'm')
+                    key = l.split(':')[1].strip().replace('maj', '').replace(
+                        'min', 'm')
                     fsnum = 0
                     for x, y, z in key_sigs:
                         if x.lower() == key.lower() or y.lower() == key.lower():
@@ -309,9 +316,10 @@ def parse_abc(fn):
                 song = song + second_ver
 
             return key, meter, song
-    except Exception as e:
-        pass
+    except:
+        pass  # There may be some abc files that can not be parsed.
     finally:
+        # clean up
         meter = "4/4"
         triptab = None
         nunit = "1/4"
@@ -319,4 +327,3 @@ def parse_abc(fn):
         song = []
         piano = []
         global_sharps_flats = {}
-

@@ -8,7 +8,6 @@ import numpy as np
 from mingus.containers import Note
 
 import util
-# from config import duration_frequencies_hard_code as duration_frequencies
 from statistics import duration_frequencies as duration_probability
 from statistics import new_pitch_frequencies_ls as pitch_probability
 

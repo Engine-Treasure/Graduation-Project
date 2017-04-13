@@ -1,9 +1,9 @@
 # -*- coding: utf-8 -*-
 
+import logging
+
 __author__ = "kissg"
 __date__ = "2017-03-10"
-
-import logging
 
 # to avoid "No handler found" warnings
 try:

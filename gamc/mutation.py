@@ -1,14 +1,12 @@
 # -*- coding: utf-8 -*-
 
-from __future__ import absolute_import
-
 import random
 
 from mingus.containers import Bar, Note
 
 from collections import Sequence
 
-import gen
+from gamc import gen
 
 __author__ = "kissg"
 __date__ = "2017-03-29"

@@ -255,7 +255,7 @@ if __name__ == '__main__':
     lp.to_pdf(lp.from_Track(track2), "top_bar.pdf")
 
     midi_file_out.write_Track("top_bar.mid", track2)
-    exit(0)
+    # exit(0)
     key, meter, notes = parse_abc(
         "/home/kissg/Developing/Graduation-Project/data/ABCs/999.abc")
     notes, durations = zip(*[(note[0].rstrip("*"), note[1]) for note in notes])
@@ -307,4 +307,4 @@ if __name__ == '__main__':
     lp.to_pdf(lp.from_Track(track), "top_sentence.pdf")
 
     midi_file_out.write_Track("top_sentence.mid", track)
-    exit(0)
+    # exit(0)

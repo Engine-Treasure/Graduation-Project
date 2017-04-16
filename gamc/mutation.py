@@ -6,7 +6,7 @@ from mingus.containers import Bar, Note
 
 from collections import Sequence
 
-from gamc import gen
+import gen
 
 __author__ = "kissg"
 __date__ = "2017-03-29"

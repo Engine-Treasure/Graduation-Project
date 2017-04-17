@@ -3,6 +3,7 @@
 from __future__ import division
 
 import random
+from copy import deepcopy
 
 import mingus.extra.lilypond as lp
 import numpy as np
@@ -19,6 +20,7 @@ import crossover
 from abcparse import parse_abc
 from common import construct_bars, count
 from gen import init_bar, init_sentence
+from util import cal_variance
 
 __author__ = "kissg"
 __date__ = "2017-03-10"
@@ -50,7 +52,7 @@ def evolve_bar(pop=None, ngen=100, mu=100, cxpb=0.9, mutpb=0.1, seed=None):
     """
     random.seed(seed)
 
-    CATASTROPHE = 10  # catastrophe countdown
+    CATASTROPHE = 5  # catastrophe countdown
     SURVIVAL_SIZE = 10  # initial survival size
 
     # create and register statistics method
@@ -80,7 +82,7 @@ def evolve_bar(pop=None, ngen=100, mu=100, cxpb=0.9, mutpb=0.1, seed=None):
     pop = toolbox.select_bar(pop, len(pop))
 
     # todo: for catastrophe
-    # top_inds = tools.selBest(pop, SURVIVAL_SIZE)  # top  individuals to survive
+    top_inds = tools.selBest(pop, SURVIVAL_SIZE)  # top  individuals to survive
 
     record = stats.compile(pop)
     logbook.record(gen=0, evals=len(invalid_ind), **record)
@@ -114,20 +116,28 @@ def evolve_bar(pop=None, ngen=100, mu=100, cxpb=0.9, mutpb=0.1, seed=None):
         print(logbook.stream)
 
         # todo: for catastrophe
-        # print(len(set(top_inds) - set(tools.selBest(pop, SURVIVAL_SIZE))))
         # if len(set(top_inds) - set(
         #         tools.selBest(pop, SURVIVAL_SIZE))) / SURVIVAL_SIZE <= 0.2:
-        #     CATASTROPHE -= 1
-        #     print(CATASTROPHE)
-        #     # top_inds = tools.selBest(pop, SURVIVAL_SIZE)  # 更新 top
-        #
-        # if CATASTROPHE == 0:
-        #     print("BOOM")
-        #     new_pop = toolbox.pop_bar(n=(mu - SURVIVAL_SIZE))  # 灾变的新生个体
-        #     pop = top_inds.extend(new_pop)
-        #     SURVIVAL_SIZE += 10  # 环境容纳量
-        #     top_inds = tools.selBest(pop, SURVIVAL_SIZE)  # 更新 top
-        #     CATASTROPHE = 10  # 重置灾变倒计时
+        if cal_variance(*logbook.select("avg")[-2:]) < 0.005 and \
+                        cal_variance(*logbook.select("std")[-2:]) < 0.005:
+            CATASTROPHE -= 1
+            # top_inds = tools.selBest(pop, SURVIVAL_SIZE)  # 更新 top
+
+        if CATASTROPHE == 0:
+            print(("BOOM " * 10 + "\n") * 10)
+            pop = toolbox.pop_bar(n=(mu - SURVIVAL_SIZE))
+            pop.extend(deepcopy(top_inds))  # 灾变的新生个体
+
+            invalid_ind = [ind for ind in pop if not ind.fitness.valid]
+            fitnesses = toolbox.map(toolbox.evaluate_bar, invalid_ind)
+            for ind, fit in zip(invalid_ind, fitnesses):
+                ind.fitness.values = fit
+
+            pop = toolbox.select_bar(pop, len(pop))
+            SURVIVAL_SIZE += 10  # 环境容纳量增大
+            top_inds = tools.selBest(pop, SURVIVAL_SIZE)  # 更新 top
+
+            CATASTROPHE = 5  # 重置灾变倒计时
 
     return pop, logbook
 
@@ -206,31 +216,25 @@ def evolve_sentence(bars_pool, ngen=20, mu=10, cxpb=0.9, seed=None):
     return pop, logbook
 
 
-def evolve_from_none():
-    """
-    :return:
-    """
-    evolved_pop, log = evolve_bar()
-    return evolved_pop, log
-
-
-def evolve_from_abc(abc):
+def evolve_from_abc(abc, ngen=100, mu=100, cxpb=0.9, mutpb=0.1):
     key, meter, notes = parse_abc(abc)
     names, durations = zip(*
                            [(note[0].rstrip("*"), note[1]) for note in notes])
     names = [name[:-1].upper() + "-" + name[-1] for name in names]
     pop = construct_bars(names, durations, container=creator.Bar)
-
     ppb, dpb = count(names, durations)
+
     toolbox.unregister("mate_bar")
     toolbox.unregister("mutate_bar")
     toolbox.register("mate_bar", crossover.cross_bar, ppb=ppb, dpb=dpb)
     toolbox.register("mutate_bar", mutation.mutate_bar, ppb=ppb, dpb=dpb)
-    evolved_pop, log = evolve_bar(pop=pop)
+    evolved_pop, log = evolve_bar(pop=pop, ngen=ngen, mu=mu, cxpb=cxpb,
+                                  mutpb=mutpb)
     return evolved_pop, log
 
 
-def evolve_from_keyboard(notes, durations):
+def evolve_from_keyboard(notes, durations, ngen=100, mu=100, cxpb=0.9,
+                         mutpb=0.1):
     pop = construct_bars(notes, durations, container=creator.Bar)
 
     ppb, dpb = count(notes, durations)
@@ -238,8 +242,9 @@ def evolve_from_keyboard(notes, durations):
     toolbox.unregister("mutate_bar")
     toolbox.register("mate_bar", crossover.cross_bar, ppb=ppb, dpb=dpb)
     toolbox.register("mutate_bar", mutation.mutate_bar, ppb=ppb, dpb=dpb)
-    evolved_pop, log = evolve_bar(pop=pop, mu=len(pop))
-    evolved_pop, log = evolve_sentence(evolved_pop)
+    evolved_pop, log = evolve_bar(pop=pop, mu=len(pop), ngen=ngen,
+                                  cxpb=cxpb, mutpb=mutpb)
+    evolved_pop, log = evolve_sentence(evolved_pop, mu=mu)
     evolved_pop = [bar for bar_list in evolved_pop for bar in bar_list]
 
     return evolved_pop, log
@@ -261,7 +266,7 @@ if __name__ == '__main__':
     notes, durations = zip(*[(note[0].rstrip("*"), note[1]) for note in notes])
     notes = [note[:-1].upper() + "-" + note[-1] for note in notes]
 
-    print(key, meter, notes, durations)
+    # print(key, meter, notes, durations)
 
     pop = construct_bars(notes, durations, container=creator.Bar)
     track3 = Track()
@@ -277,7 +282,7 @@ if __name__ == '__main__':
     toolbox.unregister("mate_bar")
     toolbox.unregister("mutate_bar")
     ppb, dpb = count(notes, durations)
-    print(ppb)
+    # print(ppb)
     toolbox.register("mate_bar", crossover.cross_bar, ppb=ppb, dpb=dpb)
     toolbox.register("mutate_bar", mutation.mutate_bar, indpb=0.10, ppb=ppb,
                      dpb=dpb)
@@ -286,7 +291,7 @@ if __name__ == '__main__':
     # print(
     #     "Best individual is: {}\n with fitness: {}".format(hof[0],
     #                                                        hof[0].fitness))
-    print(len(set(bars_pool)))
+    # print(len(set(bars_pool)))
     track2 = Track()
     for i, bar in enumerate(tools.selTournament(bars_pool, 16, 4)):
         track2.add_bar(bar)

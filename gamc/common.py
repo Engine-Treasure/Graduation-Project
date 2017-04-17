@@ -30,7 +30,7 @@ def construct_bars(names, durations, container=Bar):
     bars = []
     bar = container()
     for name, duration in zip(names, durations):
-        print(name, duration)
+        # print(name, duration)
 
         if bar.is_full():
             bars.append(deepcopy(bar))
@@ -77,9 +77,9 @@ def count(notes, durations):
     durations = filter(lambda x: x in get_geometric_progression_of_2(1, 32), durations)
 
     pitch_counter = Counter(pitchs)
-    print(pitch_counter)
+    # print(pitch_counter)
     duration_counter = Counter(durations)
-    print(duration_counter)
+    # print(duration_counter)
 
     pitch_total = len(pitchs)
     duration_total = len(durations)
@@ -99,7 +99,7 @@ def count(notes, durations):
         duration_probability[k] if k in duration_counter else 0
         for k in get_geometric_progression_of_2(1, 32)
         ]
-    print(duration_probability_list)
+    # print(duration_probability_list)
 
     return pitch_probability_list, duration_probability_list
 

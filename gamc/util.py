@@ -50,6 +50,11 @@ def non_decreasing(L):
     return all(x <= y for x, y in zip(L[:-1], L[1:]))
 
 
+def cal_variance(a, b):
+    return abs((a - b) / b)
+
+
 if __name__ == '__main__':
+    print(cal_variance(0.99, 1.0))
     print(get_geometric_progression_of_2(2, 32))
     print(get_geometric_progression_with_length(1, 2, 10))

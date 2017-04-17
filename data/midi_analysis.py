@@ -56,20 +56,21 @@ def compute_pitch_statistics(midi_file):
             for track in pattern
             for event in track if isinstance(event, midi.NoteEvent)
             ]
-        pitchs = map(pitch2name, pitchs)
+        # pitchs = map(pitch2name, pitchs)
+        pitchs = map(str, pitchs)
 
         pitch_2 = get_N_grams(pitchs, 2)
-        pitch_3 = get_N_grams(pitchs, 3)
-        pitch_4 = get_N_grams(pitchs, 4)
-        pitch_5 = get_N_grams(pitchs, 5)
-        pitch_6 = get_N_grams(pitchs, 6)
+        # pitch_3 = get_N_grams(pitchs, 3)
+        # pitch_4 = get_N_grams(pitchs, 4)
+        # pitch_5 = get_N_grams(pitchs, 5)
+        # pitch_6 = get_N_grams(pitchs, 6)
 
         return {"pitch": Counter(pitchs),
-                "pitch_2": Counter(pitch_2),
-                "pitch_3": Counter(pitch_3),
-                "pitch_4": Counter(pitch_4),
-                "pitch_5": Counter(pitch_5),
-                "pitch_6": Counter(pitch_6)}
+                "pitch_2": Counter(pitch_2)}
+                # "pitch_3": Counter(pitch_3),
+                # "pitch_4": Counter(pitch_4),
+                # "pitch_5": Counter(pitch_5),
+                # "pitch_6": Counter(pitch_6)}
     except Exception as e:
         pass
 
@@ -89,21 +90,19 @@ def concat_pitch_statistics(a, b):
 #         os.path.join("MIDIs", "*.[mM][iI][dD]"))
 # )
 
-subdirs = os.listdir("lmd_full")
+subdirs = os.listdir("lmd_full_mirror")
 for subdir in subdirs:
     pitch_statistics = (compute_pitch_statistics(midi_file)
                         for midi_file in
-                        glob.iglob(os.path.join("lmd_full", subdir, "*.[mM][iI][dD]")))
+                        glob.iglob(os.path.join("lmd_full_mirror", subdir, "*.[mM][iI][dD]")))
 
     pitch_statistics = (s for s in pitch_statistics if s is not None)
 
     pitch_statistics = reduce(concat_pitch_statistics, pitch_statistics)
 
-    with open("midi_result" + subdir, "w") as f:
+    with open(os.path.join("midi_result", subdir + ".txt"), "w") as f:
         f.write(json.dumps(pitch_statistics))
 
-#
+
 # with open("midi_result", "w") as f:
 #     f.write(json.dumps(pitch_statistics))
-
-send_email.send_email()

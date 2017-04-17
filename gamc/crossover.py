@@ -3,8 +3,6 @@
 import random
 from math import ceil
 
-print(__name__)
-
 from deap import tools
 from mingus.containers import Note
 

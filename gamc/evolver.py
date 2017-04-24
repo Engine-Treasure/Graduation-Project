@@ -57,10 +57,10 @@ def evolve_bar(pop=None, ngen=100, mu=100, cxpb=0.9, mutpb=0.1, seed=None):
 
     # create and register statistics method
     stats = tools.Statistics(lambda ind: ind.fitness.values)
-    stats.register("avg", np.mean)
-    stats.register("std", np.std)
-    stats.register("max", np.max)
-    stats.register("min", np.min)
+    stats.register("avg", np.mean, axis=0)
+    stats.register("std", np.std, axis=0)
+    stats.register("max", np.max, axis=0)
+    stats.register("min", np.min, axis=0)
 
     # create logbook for recording evolution info
     logbook = tools.Logbook()
@@ -87,6 +87,7 @@ def evolve_bar(pop=None, ngen=100, mu=100, cxpb=0.9, mutpb=0.1, seed=None):
     record = stats.compile(pop)
     logbook.record(gen=0, evals=len(invalid_ind), **record)
     print(logbook.stream)
+    print(logbook.select("avg"))
 
     # Begin the generational process
     for gen in range(1, ngen):
@@ -113,13 +114,20 @@ def evolve_bar(pop=None, ngen=100, mu=100, cxpb=0.9, mutpb=0.1, seed=None):
 
         record = stats.compile(pop)
         logbook.record(gen=gen, evals=len(invalid_ind), **record)
-        print(logbook.stream)
+        # print(logbook.stream)
+        print(logbook.select("avg")[gen])
+        print(logbook.select("std")[gen])
 
+        print("B", logbook.select("avg")[-2], logbook.select("avg")[-2].tolist())
         # todo: for catastrophe
         # if len(set(top_inds) - set(
         #         tools.selBest(pop, SURVIVAL_SIZE))) / SURVIVAL_SIZE <= 0.2:
-        if cal_variance(*logbook.select("avg")[-2:]) < 0.005 and \
-                        cal_variance(*logbook.select("std")[-2:]) < 0.005:
+        if cal_variance(logbook.select("avg")[-2].tolist(), logbook.select("avg")[-1].tolist()) < 0.01 and \
+                        cal_variance(logbook.select("std")[-2].tolist(), logbook.select("std")[-1].tolist()) < 0.01:
+            print(logbook.select("avg")[-2].tolist())
+
+            print("A", logbook.select("avg")[-2:])
+            print(cal_variance(*logbook.select("avg")[-2:]), cal_variance(*logbook.select("std")[-2:]))
             CATASTROPHE -= 1
             # top_inds = tools.selBest(pop, SURVIVAL_SIZE)  # 更新 top
 

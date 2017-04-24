@@ -1,5 +1,8 @@
 # -*- coding: utf-8 -*-
 
+from numbers import Number
+from collections import Sequence
+
 __author__ = "kissg"
 __date__ = "2017-03-20"
 
@@ -51,10 +54,17 @@ def non_decreasing(L):
 
 
 def cal_variance(a, b):
-    return abs((a - b) / b)
+    assert type(a) == type(b), "Type inconsistent."
+    if isinstance(a, Number):
+        try:
+            return abs((a - b) / b)
+        except ZeroDivisionError:
+            return abs(a - b)
+    elif isinstance(a, Sequence):
+        return sum((cal_variance(i, j) for i, j in zip(a, b))) / len(a)
 
 
 if __name__ == '__main__':
-    print(cal_variance(0.99, 1.0))
+    print(cal_variance([0.9, 1.0], [1.0, 0.9]))
     print(get_geometric_progression_of_2(2, 32))
     print(get_geometric_progression_with_length(1, 2, 10))

@@ -9,11 +9,12 @@ import click
 import fire
 import mingus.extra.lilypond as lp
 from mingus.containers.note import NoteFormatError, Note
+from mingus.containers.bar import Bar
 from mingus.containers.track import Track
 from mingus.containers.composition import Composition
 from mingus.midi import fluidsynth, midi_file_out
 
-from gamc import evolver, txtimg
+from gamc import evolver, txtimg, abcparse, common
 
 __author__ = "kissg"
 __date__ = "2017-04-13"
@@ -110,6 +111,15 @@ class Controller(object):
 
         basic_beat = int(meter.split("/")[-1])  # Get baisc beat from meter
         self.STANDARD_DURATION = basic_beat * 60 / bpm
+
+    @play
+    def play_abc(self, abc_file):
+        key, meter, notes = abcparse.parse_abc(abc_file)
+        names, durations = zip(
+            *[(note[0].rstrip("*"), note[1]) for note in notes])
+        names = [name[:-1].upper() + "-" + name[-1] for name in names]
+        bars = common.construct_bars(names, durations, Bar)
+        return bars, None
 
     @play
     def generate(self, ngen=100, mu=100, cxpb=0.9, mutpb=0.1):

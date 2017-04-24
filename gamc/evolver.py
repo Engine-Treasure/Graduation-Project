@@ -10,6 +10,7 @@ import numpy as np
 from deap import base
 from deap import creator
 from deap import tools
+from deap.benchmarks.tools import convergence, diversity
 from mingus.containers import Bar, Track
 from mingus.midi import midi_file_out
 
@@ -71,6 +72,8 @@ def evolve_bar(pop=None, ngen=100, mu=100, cxpb=0.9, mutpb=0.1, seed=None):
     if not pop:
         pop = toolbox.pop_bar(n=mu)
 
+    optimal_front = pop
+
     # Evaluate the individuals with an invalid fitness
     invalid_ind = [ind for ind in pop if not ind.fitness.valid]
     fitnesses = toolbox.map(toolbox.evaluate_bar, invalid_ind)
@@ -87,7 +90,6 @@ def evolve_bar(pop=None, ngen=100, mu=100, cxpb=0.9, mutpb=0.1, seed=None):
     record = stats.compile(pop)
     logbook.record(gen=0, evals=len(invalid_ind), **record)
     print(logbook.stream)
-    print(logbook.select("avg"))
 
     # Begin the generational process
     for gen in range(1, ngen):
@@ -114,20 +116,14 @@ def evolve_bar(pop=None, ngen=100, mu=100, cxpb=0.9, mutpb=0.1, seed=None):
 
         record = stats.compile(pop)
         logbook.record(gen=gen, evals=len(invalid_ind), **record)
-        # print(logbook.stream)
-        print(logbook.select("avg")[gen])
-        print(logbook.select("std")[gen])
+        print(logbook.stream)
 
-        print("B", logbook.select("avg")[-2], logbook.select("avg")[-2].tolist())
         # todo: for catastrophe
         # if len(set(top_inds) - set(
         #         tools.selBest(pop, SURVIVAL_SIZE))) / SURVIVAL_SIZE <= 0.2:
         if cal_variance(logbook.select("avg")[-2].tolist(), logbook.select("avg")[-1].tolist()) < 0.01 and \
                         cal_variance(logbook.select("std")[-2].tolist(), logbook.select("std")[-1].tolist()) < 0.01:
-            print(logbook.select("avg")[-2].tolist())
 
-            print("A", logbook.select("avg")[-2:])
-            print(cal_variance(*logbook.select("avg")[-2:]), cal_variance(*logbook.select("std")[-2:]))
             CATASTROPHE -= 1
             # top_inds = tools.selBest(pop, SURVIVAL_SIZE)  # 更新 top
 
@@ -146,6 +142,20 @@ def evolve_bar(pop=None, ngen=100, mu=100, cxpb=0.9, mutpb=0.1, seed=None):
             top_inds = tools.selBest(pop, SURVIVAL_SIZE)  # 更新 top
 
             CATASTROPHE = 5  # 重置灾变倒计时
+
+    print(stats)
+    print("Convergence: ", convergence(pop, optimal_front))
+    print("Diversity: ", diversity(pop, optimal_front[0], optimal_front[-1]))
+
+    import matplotlib.pyplot as plt
+    import numpy
+
+    front = numpy.array([ind.fitness.values for ind in pop])
+    optimal_front = numpy.array(optimal_front)
+    plt.scatter(optimal_front[:,0], optimal_front[:,1], c="r")
+    plt.scatter(front[:,0], front[:,1], c="b")
+    plt.axis("tight")
+    plt.show()
 
     return pop, logbook
 

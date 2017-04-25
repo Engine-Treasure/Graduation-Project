@@ -71,6 +71,7 @@ class BarMutation(object):
 
 
 __method__ = ["mut_name", "mut_duration"]
-__method2__ = ["mut_name", "mut_augment", "mut_diminish", "mut_transpose",
-               "mut_duration"]
+__method2__ = ["mut_name"]
+# __method2__ = ["mut_name", "mut_augment", "mut_diminish", "mut_transpose",
+#                "mut_duration"]
 __all__ = ["mutate_bar", "mutate_sentence"]

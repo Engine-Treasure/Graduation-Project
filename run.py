@@ -7,6 +7,8 @@ import webbrowser
 
 import click
 import fire
+import numpy as np
+import matplotlib.pyplot as plt
 import mingus.extra.lilypond as lp
 from mingus.containers.note import NoteFormatError, Note
 from mingus.containers.bar import Bar
@@ -26,15 +28,11 @@ def play(func):
     def wrapper(*args, **kwargs):
         bars, log = func(*args, **kwargs)
         track = Track()
-        # track1 = Track()
-        # track2 = Track()
 
         print("Listening ...")
         try:
             for bar in bars:
                 track.add_bar(bar)
-                # track1.add_bar(bar)
-                # track2.add_bar(bar)
         except KeyboardInterrupt:
             raise
 
@@ -42,16 +40,19 @@ def play(func):
         webbrowser.open("out.pdf.pdf")
         midi_file_out.write_Track("out.mid", track)
 
+        fig = plt.figure()
+
+        plt.grid(True, 'major', 'y', ls='--', lw=.5, c='k', alpha=.3)
+
+        headers = ["avg", "std", "min", "max"]
+        for rank, header in enumerate(headers):
+            plt.scatter(np.arange(len(log.select(header))),
+                        np.sum(np.array(log.select(header)) / 8, axis=1))
+
+        fig.savefig("out.png")
+        webbrowser.open_new("out.png")
+
         fluidsynth.play_Track(track)
-        # composition = Composition()
-        # composition.add_track(track)
-        # composition.add_track(track1)
-        # composition.add_track(track2)
-        # lp.to_pdf(lp.from_Composition(composition), "out.pdf")
-        # webbrowser.open("out.pdf.pdf")
-        # midi_file_out.write_Composition("out.mid", composition)
-        #
-        # fluidsynth.play_Composition(composition)
 
     return wrapper
 

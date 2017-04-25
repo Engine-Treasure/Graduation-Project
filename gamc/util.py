@@ -32,6 +32,11 @@ def is_monotone(L):
     return non_increasing(L) or non_decreasing(L)
 
 
+def is_strict_monotone(L):
+    """严格单调"""
+    return strictly_decreasing(L) or strictly_decreasing(L)
+
+
 def strictly_increasing(L):
     """严格单调递增"""
     # None as 0

@@ -5,6 +5,7 @@ from __future__ import division
 
 import math
 
+import numpy as np
 from mingus.core import intervals
 from mingus.containers import Note
 
@@ -15,8 +16,18 @@ from statistics import markov_table_rank
 __author__ = "kissg"
 __date__ = "2017-03-30"
 
+name2int = {
+    "C": 0, "C#": 1, "D": 2, "D#": 3, "E": 4, "F": 5,
+    "F#": 6, "G": 7, "G#": 8, "A": 9, "A#": 10, "B": 11
+}
 
-def grade_intervals(notes_pair):
+int2name = {
+    0: "C", 1: "C#", 2: "D", 3: "D#", 4: "E", 5: "F",
+    6: "F#", 7: "G", 8: "G#", 9: "A", 10: "A#", 11: "B"
+}
+
+
+def grade_intervals(pitch_name_pair):
     """
     对音程打分 -
     纯一度或纯八度, 为极协和音程,
@@ -26,7 +37,8 @@ def grade_intervals(notes_pair):
     大二度, 小二度, 大七度, 小七度, 不协和音程
     其他为极不协和音程
     """
-    itv = intervals.determine(*notes_pair)
+
+
     if "unison" in itv:  # 纯一度, 纯八度, 缺少变化
         return 0.5
     elif itv in ("perfect fifth", "perfect fourth"):
@@ -149,8 +161,28 @@ def grade_internal_chords(bar):
 
 def evaluate_bar(bar):
     # todo - kinds of evalute ways
-    durations, pitchs = math.modf(bar)
-    pass
+    if len(bar) == 1:
+        return 0
+
+    durations, pitchs = zip(*[math.modf(note) for note in bar])
+
+    pitchs = [int(pitch) for pitch in pitchs]
+    octaves, pitch_names = zip(*[divmod(pitch, 12) for pitch in pitchs])
+
+    durations = [int(round(duration * 100)) for duration in durations]
+    print("OK")
+
+    print(pitchs)
+    print(pitch_names)
+    print(octaves)
+    print(durations)
+
+    pitch_pairs, pitch_name_pairs, octave_pairs, duration_pairs = map(
+        util.get_order_pair, (pitchs, pitch_names, octaves, durations)
+    )
+
+    g_intervals = np.mean([grade_intervals(pn2) for pn2 in pitch_name_pairs])
+    g_ocvt = np.mean([grade_intervals(p) for p in pitch_pairs])
 
 
 def grade_length_similarity(length_pair):

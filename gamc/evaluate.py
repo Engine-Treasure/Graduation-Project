@@ -3,7 +3,7 @@
 
 from __future__ import division
 
-from math import sqrt, floor
+import math
 
 from mingus.core import intervals
 from mingus.containers import Note
@@ -149,45 +149,8 @@ def grade_internal_chords(bar):
 
 def evaluate_bar(bar):
     # todo - kinds of evalute ways
-    names, octaves, durations = get_names_octaves_durations(bar)
-
-    # 可能生成了单音符的小节, 直接返回 1 分, 不做评价
-    if len(names) == 1:
-        return (0.0,) * 7
-    # 音名, 八度, 时值的组合, 每一对都是前后组合, 有别于 Python 自带的 Combinations
-    name_combinations, octave_combinations, duration_combinations = map(
-        util.get_order_pair, (names, octaves, durations))
-
-    nos = [n + "-" + str(o) for n, o in zip(names, octaves)]
-    name_octave_combinations = util.get_order_pair(nos)
-
-    # 以下打分是针对每一对组合的
-    grade_of_intervals = map(grade_intervals, name_combinations)
-    grade_of_octave = map(grade_octave, octave_combinations)
-    grade_of_duration = map(grade_duration, duration_combinations)
-    grade_of_markov = map(grade_markov, name_octave_combinations)
-
-    # 评分求和, 并标准化为 0~1.0, scaling
-    grade_of_intervals = sum(grade_of_intervals) / len(grade_of_intervals)
-    grade_of_octave = sum(grade_of_octave) / len(grade_of_octave)
-    grade_of_duration = sum(grade_of_duration) / len(grade_of_duration)
-    grade_of_markov = sum(grade_of_markov) / len(grade_of_markov)
-
-    # 以下打分是针对整个小节的, 不必求和
-    grade_of_pitch_change = grade_pitch_change(bar)
-    grade_of_octave_change = grade_octave_change(bar)
-    grade_of_duration_change = grade_duration_change(bar)
-    grade_of_bar_length = grade_bar_length(bar)
-
-    return grade_of_intervals, grade_of_octave, grade_of_duration, \
-           grade_of_markov, grade_of_pitch_change, grade_of_octave_change, \
-           grade_of_duration_change, grade_of_bar_length
-    # simply mean
-    # return sum((grade_of_intervals, grade_of_octave, grade_of_duration,
-    #             grade_of_pitch_change, grade_of_duration_change)) / 5.0
-    # grade_of_duration_change
-    # grade_of_internal_chords
-    # grade_of_pitch_change
+    durations, pitchs = math.modf(bar)
+    pass
 
 
 def grade_length_similarity(length_pair):

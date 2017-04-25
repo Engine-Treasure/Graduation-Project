@@ -4,36 +4,55 @@ from __future__ import division
 
 import random
 from copy import deepcopy
+import array
+import math
 
-import mingus.extra.lilypond as lp
 import numpy as np
-from deap import base
 from deap import creator
 from deap import tools
-from mingus.containers import Bar, Track
-from mingus.midi import midi_file_out
+from deap import base
 
-import crossover
-import evaluate
 import fortin2013
+import evaluate
+import crossover
 import mutation
-from abcparse import parse_abc
-from common import construct_bars, count
-from gen import init_bar, init_sentence
-from util import cal_variance
 
 __author__ = "kissg"
 __date__ = "2017-03-10"
 
-# 各观测值依次分别为: 相邻音高, 相邻八度, 相邻时值, 是否满足马尔可夫链, 音高变化, 八度变化, 时值变化, 小节长度
-creator.create("BarFitness", base.Fitness, weights=(1.0, 0.2, 0.2, 1.0, 0.5,
-                                                    0.2, 0.2, 0.2))
-creator.create("Bar", Bar, fitness=creator.BarFitness)
+creator.create("BarFitness", base.Fitness, weights=(1.0,))
+# pitch.duration
+creator.create("Bar", array.array, typecode="d", fitness=creator.BarFitness)
 
 toolbox = base.Toolbox()
-# creator.Bar inherits from mingus.containers.Bar, and has attribute `fitness`
-toolbox.register("bar", init_bar, creator.Bar, key="C", meter=(4, 4))
-toolbox.register("pop_bar", tools.initRepeat, list, toolbox.bar)
+
+PITCH_LOW, PITCH_UP = 0, 96
+DURATION_RANGE = [1, 2, 4, 8, 16, 32, 64]
+
+
+def get_pitch(low, up):
+    return random.randint(low, up)
+
+
+def get_duration(_range):
+    return random.choice(_range)
+
+
+def init_bar():
+    rest = 1
+    ind_bar = creator.Bar()
+    while rest:
+        pitch = get_pitch(PITCH_LOW, PITCH_UP)
+        duration = get_duration(
+            [dt for dt in range(int(math.ceil(1 / rest)), 65, 1) if
+             dt in DURATION_RANGE])
+        ind_bar.append(pitch + duration / 100)
+        rest -= 1 / duration
+    return ind_bar
+
+
+toolbox.register("ind_bar", init_bar)
+toolbox.register("pop_bar", tools.initRepeat, list, toolbox.ind_bar)
 
 toolbox.register("evaluate_bar", evaluate.evaluate_bar)
 toolbox.register("mate_bar", crossover.cross_bar, ppb=None, dpb=None)

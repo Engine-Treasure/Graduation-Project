@@ -20,7 +20,7 @@ import mutation
 __author__ = "kissg"
 __date__ = "2017-03-10"
 
-creator.create("BarFitness", base.Fitness, weights=(1.0,))
+creator.create("BarFitness", base.Fitness, weights=(1.0, 1.0, 1.0, 1.0, ))
 # pitch.duration
 creator.create("Bar", array.array, typecode="d", fitness=creator.BarFitness)
 
@@ -55,7 +55,7 @@ toolbox.register("ind_bar", init_bar)
 toolbox.register("pop_bar", tools.initRepeat, list, toolbox.ind_bar)
 
 toolbox.register("evaluate_bar", evaluate.evaluate_bar)
-toolbox.register("mate_bar", crossover.cross_bar, ppb=None, dpb=None)
+toolbox.register("mate_bar", crossover.cx_bar)
 toolbox.register("mutate_bar", mutation.mutate_bar, ppb=None, dpb=None)
 toolbox.register("preselect_bar", fortin2013.selTournamentFitnessDCD)
 toolbox.register("select_bar", fortin2013.selNSGA2)
@@ -95,6 +95,7 @@ def evolve_bar(pop=None, ngen=100, mu=100, cxpb=0.9, mutpb=0.1, seed=None):
     invalid_ind = [ind for ind in pop if not ind.fitness.valid]
     fitnesses = toolbox.map(toolbox.evaluate_bar, invalid_ind)
     for ind, fit in zip(invalid_ind, fitnesses):
+        print(ind, fit)
         ind.fitness.values = fit
 
     # This is just to assign the crowding distance to the individuals

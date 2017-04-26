@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 
 import random
-from math import ceil
+import math
 
 from deap import tools
 from mingus.containers import Note
@@ -13,7 +13,11 @@ __author__ = "kissg"
 __date__ = "2017-03-29"
 
 
-def cross_bar(ind1, ind2, ppb=None, dpb=None):
+def cx_bar(ind1, ind2):
+
+    durations_1, pitchs_1 = zip(*[math.modf(note) for note in ind1])
+    durations_2, pitchs_2 = zip(*[math.modf(note) for note in ind2])
+
     func = getattr(BarCrossover, random.choice(__method__))
     ind1, ind2 = func(ind1, ind2)
 

@@ -11,7 +11,7 @@ from mingus.containers import Note
 
 import util
 from common import get_names_octaves_durations
-from statistics import markov_table_rank
+from statistics import markov_table
 
 __author__ = "kissg"
 __date__ = "2017-03-30"
@@ -27,9 +27,9 @@ int2name = {
 }
 
 
-def grade_intervals(pitch_name_pair):
+def grade_chord(pitch_name_pair):
     """
-    对音程打分 -
+    对协和打分 
     纯一度或纯八度, 为极协和音程,
     纯四度或纯五度, 协和音程,
     大三度, 小三度, 大六度, 小六度, 不完全协和音程
@@ -37,60 +37,78 @@ def grade_intervals(pitch_name_pair):
     大二度, 小二度, 大七度, 小七度, 不协和音程
     其他为极不协和音程
     """
+    dis = pitch_name_pair[1] - pitch_name_pair[0]  # 后者减前者
+    res = 12 - dis * -1 if dis < 0 else dis
 
-
-    if "unison" in itv:  # 纯一度, 纯八度, 缺少变化
-        return 0.5
-    elif itv in ("perfect fifth", "perfect fourth"):
+    # todo: 更好的评分标准
+    if res == 0:  # 一度, 八度
+        return 0.2
+    elif res == 5:  # 四度
+        return 0.6
+    elif res == 7:  # 五度
+        return 0.4
+    elif res in [3, 4]:  # 三度
         return 1.0
-    elif itv in ("major third", "minor third", "major sixth", "minor sixth"):
-        return 0.75
-    elif itv in ("major second", "minor second", "major seventh",
-                 "minor seventh"):
-        return 0.25
-    else:
-        return 0
+    elif res in [8, 9]:  # 六度
+        return 0.8
+    else:  # 二度 或 七度
+        return 0.0
 
 
-def grade_octave(octaves_pair):
+def grade_interval(pitch_piar):
     """
-    对八度打分
+    音程超过一个八度, 变化剧烈, 不和谐
+    音程过大的, 惩罚性扣分
     """
-    if octaves_pair[0] == octaves_pair[1]:
-        return 1
-    elif abs(octaves_pair[0] - octaves_pair[1]) == 1:
-        return 0.75
-    elif abs(octaves_pair[0] - octaves_pair[1]) == 2:
-        return 0.5
-    elif abs(octaves_pair[0] - octaves_pair[1]) == 3:
-        return 0.25
-    else:
-        return 0
-
-
-def grade_duration(durations_pair):
-    """
-    对时值打分 - 时值变化剧烈 (超过 4 倍), -1 分
-    """
-    duration1, duration2 = durations_pair
-    if duration1 == duration2:
+    diff = abs(pitch_piar[0] - pitch_piar[1])
+    if diff < 8:
         return 1.0
-    elif max(duration1 / duration2, duration2 / duration1) == 2:
-        return 0.75
-    elif max(duration1 / duration2, duration2 / duration1) == 4:
-        return 0.5
+    elif diff < 16:
+        return 0.0
+    elif diff < 24:
+        return -0.5
     else:
-        return 0
+        return -1.0
 
 
-def grade_markov(notes_pair, markov_table=None):
-    mtb = markov_table if markov_table else markov_table_rank
+def grade_octave(octave_diffrence):
+    """
+    不同八度, 音的差别较大, 八度相差越大, 音变化越剧烈, 刺耳
+    """
+    if not octave_diffrence:  # 同一个八度
+        return 1.0
+    elif abs(octave_diffrence) == 1:  # 差一个八度
+        return 0.75
+    elif abs(octave_diffrence) == 2:
+        return 0.25
+    elif abs(octave_diffrence) == 3:
+        return 0.0
+    else:
+        return -0.25
+
+
+def grade_duration(duration_pair):
+    """
+    对时值打分 - 时值变化越剧烈, 越不舒服
+    """
+    ratio = duration_pair[1] / duration_pair[0]
+    if ratio in (0.5, 1.0, 2.0):
+        return 1.0
+    elif ratio in (0.25, 4.0):
+        return 0.0
+    else:
+        return -1.0
+
+
+def grade_markov(pitch_pair, markov=None):
+    mktb = markov if markov else markov_table
     try:
-        rank = mtb[notes_pair[0]][notes_pair[1]]
-    except KeyError:  # 可能的异常是至少一个音高不在 markov table 中, 标记为异常音高, 打 0 分
-        return 0
+        rank = mktb[pitch_pair[0]][pitch_pair[1]]
+    except KeyError:
+        # 可能的异常是至少一个音高不在 markov table 中, 标记为异常音高, 打 0 分接口
+        return 0.0
     else:
-        return 1 / sqrt(rank)
+        return -1 / (1 + math.e ** (7 - rank / 2)) + 1
 
 
 def grade_pitch_change(bar):
@@ -113,7 +131,8 @@ def grade_octave_change(bar):
     对整体八度变化的打分
     """
     # todo
-    octaves = [int(note[2][0]) // 12 if note[2] is not None else None for note in bar]
+    octaves = [int(note[2][0]) // 12 if note[2] is not None else None for note
+               in bar]
     if util.is_monotone(octaves):
         if util.is_strict_monotone(octaves):
             return 0.5
@@ -150,39 +169,26 @@ def grade_bar_length(bar):
         return 0
 
 
-def grade_internal_chords(bar):
-    """
-    对调内三/七和弦的打分
-    """
-    # todo
-    # names, octaves, durations = common.GET_NAMES_OCTAVES_DURATIONS(bar)
-    pass
-
-
 def evaluate_bar(bar):
     # todo - kinds of evalute ways
     if len(bar) == 1:
-        return 0
+        return 0, 0, 0, 0
 
     durations, pitchs = zip(*[math.modf(note) for note in bar])
 
     pitchs = [int(pitch) for pitch in pitchs]
     octaves, pitch_names = zip(*[divmod(pitch, 12) for pitch in pitchs])
-
     durations = [int(round(duration * 100)) for duration in durations]
-    print("OK")
-
-    print(pitchs)
-    print(pitch_names)
-    print(octaves)
-    print(durations)
 
     pitch_pairs, pitch_name_pairs, octave_pairs, duration_pairs = map(
         util.get_order_pair, (pitchs, pitch_names, octaves, durations)
     )
+    g_chord = np.mean([grade_chord(pn) for pn in pitch_name_pairs])
+    g_interval = np.mean([grade_interval(p) for p in pitch_pairs])
+    g_duration = np.mean([grade_duration(d) for d in duration_pairs])
+    g_markov = np.mean([grade_markov(p) for p in pitch_pairs])
 
-    g_intervals = np.mean([grade_intervals(pn2) for pn2 in pitch_name_pairs])
-    g_ocvt = np.mean([grade_intervals(p) for p in pitch_pairs])
+    return g_chord, g_interval, g_duration, g_markov,
 
 
 def grade_length_similarity(length_pair):

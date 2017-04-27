@@ -63,12 +63,12 @@ def grade_interval(pitch_piar):
     diff = abs(pitch_piar[0] - pitch_piar[1])
     if diff < 8:
         return 1.0
-    elif diff < 16:
+    elif diff <= 10:
+        return 0.2
+    elif diff <= 12:
         return 0.0
-    elif diff < 24:
-        return -0.5
     else:
-        return -1.0
+        return -1.0  # 音程超过 12 度, 严惩
 
 
 def grade_octave(octave_diffrence):
@@ -95,9 +95,9 @@ def grade_duration(duration_pair):
     if ratio in (0.5, 1.0, 2.0):
         return 1.0
     elif ratio in (0.25, 4.0):
-        return 0.0
+        return 0.2
     else:
-        return -1.0
+        return -1.0  # 音值变化超过 4 倍, 严惩
 
 
 def grade_markov(pitch_pair, markov=None):
@@ -108,7 +108,10 @@ def grade_markov(pitch_pair, markov=None):
         # 可能的异常是至少一个音高不在 markov table 中, 标记为异常音高, 打 0 分接口
         return 0.0
     else:
-        return -1 / (1 + math.e ** (7 - rank / 2)) + 1
+        if rank >= 25:
+            return -1  # 严惩
+        else:
+            return -1 / (1 + math.e ** (7 - rank / 2)) + 1
 
 
 def grade_pitch_change(bar):
@@ -157,22 +160,28 @@ def grade_duration_change(bar):
         return 1.0
 
 
-def grade_bar_length(bar):
+def grade_length(bar):
+    """
+    小节包含的音符数, 记作其长度
+    :return: 
+    """
     length = len(bar)
     if length in [4]:
         return 1.0
     elif length in [3, 5]:
         return 0.75
-    elif length in [2, 6]:
+    elif length == 6:
         return 0.5
-    else:  # 一个小节中音符过多，扣分
-        return 0
+    elif length in [2, 7]:
+        return 0.0
+    elif length >= 8:  # 极端情况, 扣分
+        return -1.0
 
 
 def evaluate_bar(bar):
     # todo - kinds of evalute ways
     if len(bar) == 1:
-        return 0, 0, 0, 0
+        return 0, 0, 0, 0, 0
 
     durations, pitchs = zip(*[math.modf(note) for note in bar])
 
@@ -187,8 +196,9 @@ def evaluate_bar(bar):
     g_interval = np.mean([grade_interval(p) for p in pitch_pairs])
     g_duration = np.mean([grade_duration(d) for d in duration_pairs])
     g_markov = np.mean([grade_markov(p) for p in pitch_pairs])
+    g_length = np.mean(grade_length(bar))
 
-    return g_chord, g_interval, g_duration, g_markov,
+    return g_chord, g_interval, g_duration, g_markov, g_length
 
 
 def grade_length_similarity(length_pair):

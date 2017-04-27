@@ -17,25 +17,35 @@ import evaluate
 import crossover
 import mutation
 
+import util
+from statistics import duration_frequencies as duration_probability
+from statistics import new_pitch_frequencies_ls as pitch_probability
+
 __author__ = "kissg"
 __date__ = "2017-03-10"
 
-creator.create("BarFitness", base.Fitness, weights=(1.0, 1.0, 1.0, 1.0, ))
+creator.create("BarFitness", base.Fitness, weights=(1.0, 1.0, 1.0, 1.0, 1.0, ))
 # pitch.duration
 creator.create("Bar", array.array, typecode="d", fitness=creator.BarFitness)
 
 toolbox = base.Toolbox()
 
 PITCH_LOW, PITCH_UP = 0, 96
-DURATION_RANGE = [1, 2, 4, 8, 16, 32, 64]
+DURATION_RANGE = [1, 2, 4, 8, 16, 32]
 
 
 def get_pitch(low, up):
-    return random.randint(low, up)
+    # return random.randint(low, up)
+    pitch = np.random.choice(range(0, 88), p=pitch_probability) + 9
+    return pitch
 
 
 def get_duration(_range):
-    return random.choice(_range)
+    available_probability = duration_probability[-len(_range):]
+    new_total = sum(available_probability)
+    probality = [_ / new_total for _ in available_probability]  # 重新计算比例
+    duration = np.random.choice(_range, p=probality)
+    return duration
 
 
 def init_bar():
@@ -55,8 +65,8 @@ toolbox.register("ind_bar", init_bar)
 toolbox.register("pop_bar", tools.initRepeat, list, toolbox.ind_bar)
 
 toolbox.register("evaluate_bar", evaluate.evaluate_bar)
-toolbox.register("mate_bar", crossover.cx_bar)
-toolbox.register("mutate_bar", mutation.mutate_bar, ppb=None, dpb=None)
+toolbox.register("mate_bar", crossover.cx_one_point_bar)
+toolbox.register("mutate_bar", mutation.mutate_bar)
 toolbox.register("preselect_bar", fortin2013.selTournamentFitnessDCD)
 toolbox.register("select_bar", fortin2013.selNSGA2)
 
@@ -95,7 +105,6 @@ def evolve_bar(pop=None, ngen=100, mu=100, cxpb=0.9, mutpb=0.1, seed=None):
     invalid_ind = [ind for ind in pop if not ind.fitness.valid]
     fitnesses = toolbox.map(toolbox.evaluate_bar, invalid_ind)
     for ind, fit in zip(invalid_ind, fitnesses):
-        print(ind, fit)
         ind.fitness.values = fit
 
     # This is just to assign the crowding distance to the individuals
@@ -119,8 +128,8 @@ def evolve_bar(pop=None, ngen=100, mu=100, cxpb=0.9, mutpb=0.1, seed=None):
             if random.random() <= cxpb:
                 toolbox.mate_bar(ind1, ind2)
 
-            toolbox.mutate_bar(ind1, indpb=mutpb)
-            toolbox.mutate_bar(ind2, indpb=mutpb)
+            toolbox.mutate_bar(ind1)
+            toolbox.mutate_bar(ind2)
             del ind1.fitness.values, ind2.fitness.values
 
         # Evaluate the individuals with an invalid fitness
@@ -137,9 +146,9 @@ def evolve_bar(pop=None, ngen=100, mu=100, cxpb=0.9, mutpb=0.1, seed=None):
         print(logbook.stream)
 
         # todo: for catastrophe
-        if cal_variance(logbook.select("avg")[-2].tolist(),
+        if util.cal_variance(logbook.select("avg")[-2].tolist(),
                         logbook.select("avg")[-1].tolist()) < 0.01 or \
-                        cal_variance(logbook.select("std")[-2].tolist(),
+                        util.cal_variance(logbook.select("std")[-2].tolist(),
                                      logbook.select("std")[-1].tolist()) < 0.01:
             CATASTROPHE -= 1
             # top_inds = tools.selBest(pop, SURVIVAL_SIZE)  # 更新 top
@@ -156,6 +165,8 @@ def evolve_bar(pop=None, ngen=100, mu=100, cxpb=0.9, mutpb=0.1, seed=None):
 
             pop = toolbox.select_bar(pop, len(pop))
             SURVIVAL_SIZE += 10  # 环境容纳量增大
+            if SURVIVAL_SIZE == mu:
+                return pop, logbook
             top_inds = tools.selBest(pop, SURVIVAL_SIZE)  # 更新 top
 
             CATASTROPHE = 5  # 重置灾变倒计时

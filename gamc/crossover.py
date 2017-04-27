@@ -13,35 +13,33 @@ __author__ = "kissg"
 __date__ = "2017-03-29"
 
 
-def cx_bar(ind1, ind2):
+def cx_one_point_bar(ind_1, ind_2):
+    """
+    In order to make sure the two offsprings are complete.
+    There is limit to the cross point.
+    Like DEAP's crossover operator, modify inplace.
+    """
 
-    durations_1, pitchs_1 = zip(*[math.modf(note) for note in ind1])
-    durations_2, pitchs_2 = zip(*[math.modf(note) for note in ind2])
+    # 为保证交叉之后, 两个个体都是完整的小节,
+    durations_1, pitchs_1 = zip(*[math.modf(note) for note in ind_1])
+    durations_2, pitchs_2 = zip(*[math.modf(note) for note in ind_2])
+    time_1 = [1 / round(duration * 100) for duration in durations_1]
+    time_2 = [1 / round(duration * 100) for duration in durations_2]
 
-    func = getattr(BarCrossover, random.choice(__method__))
-    ind1, ind2 = func(ind1, ind2)
+    # cumulative time
+    ctime_1 = [sum(time_1[:i+1]) for i, t in enumerate(time_1)]
+    ctime_2 = [sum(time_2[:i+1]) for i, t in enumerate(time_2)]
 
-    if not ind1.is_full():
-        if random.random() < 0.05:
-            ind1.place_rest(ind1.value_left())
-        else:
-            while not ind1.is_full():
-                # todo - place rest
-                ind1.place_notes(gen_pitch(p=ppb),
-                                 gen_duration(_max=int(ceil(ind1.value_left())),
-                                              p=dpb))
+    atime = [t for t in ctime_1 if t in ctime_2]
 
-    if not ind2.is_full():
-        if random.random() < 0.05:
-            ind2.place_rest(ind2.value_left())
-        else:
-            while not ind2.is_full():
-                # todo - place rest
-                ind2.place_notes(gen_pitch(p=ppb),
-                                 gen_duration(_max=int(ceil(ind2.value_left())),
-                                              p=dpb))
-
-    return ind1, ind2
+    if atime == [1.0]:  # atime may be empty list
+        return ind_1, ind_2
+    else:
+        atime.pop()  # remove 1.0
+        chosen_pos = random.choice(atime)
+        pos_1, pos_2 = ctime_1.index(chosen_pos), ctime_2.index(chosen_pos)
+        ind_1, ind_2 = ind_1[:pos_1] + ind_2[pos_2:], ind_2[:pos_2] + ind_1[pos_1:]
+        return ind_1, ind_2
 
 
 def cross_sentence(ind1, ind2):

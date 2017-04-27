@@ -3,6 +3,7 @@
 import json
 import os
 import time
+import math
 import webbrowser
 
 import click
@@ -122,9 +123,41 @@ class Controller(object):
         bars = common.construct_bars(names, durations, Bar)
         return bars, None
 
-    @play
     def generate(self, ngen=100, mu=100, cxpb=0.9, mutpb=0.1):
-        return evolver.evolve_bar(ngen=ngen, mu=mu, cxpb=cxpb, mutpb=mutpb)
+
+        pop, log = evolver.evolve_bar(ngen=ngen, mu=mu, cxpb=cxpb, mutpb=mutpb)
+        print(len(set(pop)))
+
+        track = Track()
+        for ind in pop:
+            durations, pitchs = zip(*[math.modf(note) for note in ind])
+            notes = [Note().from_int(int(pitch)) for pitch in pitchs]
+            durations = [int(round(duration * 100)) for duration in durations]
+            bar = Bar()
+            for note, duration in zip(notes, durations):
+                bar.place_notes(note, duration)
+            track.add_bar(bar)
+
+        lp.to_pdf(lp.from_Track(track), "tmp.pdf")
+        midi_file_out.write_Track("tmp.mid", track)
+        webbrowser.open("tmp.pdf.pdf")
+        fig = plt.figure()
+
+        plt.grid(True, 'major', 'y', ls='--', lw=.5, c='k', alpha=.3)
+
+        headers = ["avg", "std", "min", "max"]
+        for rank, header in enumerate(headers):
+            plt.scatter(np.arange(len(log.select(header))),
+                        np.sum(np.array(log.select(header)) / 8, axis=1))
+
+        fig.savefig("out.png")
+        webbrowser.open_new("out.png")
+        fluidsynth.play_Track(track)
+
+
+        # bars = [Bar(Note().from_int(int(pitch)), int(round(duration * 100))) for pitch, duration in zip(pitchs, durations)]
+
+        print(log)
 
     @play
     def imitate(self, abc_file, ngen=100, mu=100, cxpb=0.9, mutpb=0.1):

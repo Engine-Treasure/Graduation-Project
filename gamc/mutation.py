@@ -27,8 +27,8 @@ __mutation_bar__ = [
     "mut_rotate_right_bar",
     "mut_invert_pitch_bar",
     "mut_ascend_pitch_bar",
-    "mut_descend_pitch_bar",
-    "mut_transpose_bar"
+    # "mut_transpose_bar",
+    "mut_descend_pitch_bar"
 ]
 
 
@@ -90,7 +90,7 @@ class MutationBar(object):
         """
         :return: 
         """
-        n = random.randint(1, 7)  # randint - including both end points.
+        n = random.randint(1, 4)  # randint - including both end points.
 
         durations, pitchs = zip(*[math.modf(note) for note in ind_bar])
         ls = [p + n + d if p + n < 97 else 192 - p - n + d for p, d in
@@ -98,6 +98,18 @@ class MutationBar(object):
         # return array.array("d", ls),
         return creator.Bar(ls),
 
+    # @classmethod
+    # def mut_delete_bar(self, ind_bar):
+    #     """
+    #     :return:
+    #     """
+    #     n = random.randint(1, 4)  # randint - including both end points.
+    #
+    #     durations, pitchs = zip(*[math.modf(note) for note in ind_bar])
+    #     ls = [p + n + d if p + n < 97 else 192 - p - n + d for p, d in
+    #           zip(pitchs, durations)]
+    #     # return array.array("d", ls),
+    #     return creator.Bar(ls),
 
 def mutate_sentence(individual):
     for i in xrange(len(individual)):

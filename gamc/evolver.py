@@ -12,7 +12,8 @@ from deap import creator
 from deap import tools
 from deap import base
 
-import fortin2013
+# import fortin2013
+import engine2017 as fortin2013
 import evaluate
 import crossover
 import mutation
@@ -20,6 +21,7 @@ import mutation
 import util
 from statistics import duration_frequencies as duration_probability
 from statistics import new_pitch_frequencies_ls as pitch_probability
+import abcparse
 
 __author__ = "kissg"
 __date__ = "2017-03-10"
@@ -34,9 +36,13 @@ PITCH_LOW, PITCH_UP = 0, 96
 DURATION_RANGE = [1, 2, 4, 8, 16, 32]
 
 
-def get_pitch(low, up):
+def get_pitch():
     # return random.randint(low, up)
-    pitch = np.random.choice(range(0, 88), p=pitch_probability) + 9
+    # pitch = np.random.choice(range(0, 88), p=pitch_probability)
+    # return pitch if 36 <= pitch <= 83 else get_pitch()
+    pitch = np.random.choice([
+        36, 38, 40, 41, 43, 45, 47, 48, 50, 52, 53, 55, 57, 59, 60, 62, 64, 65, 67, 69
+    ])
     return pitch
 
 
@@ -52,7 +58,7 @@ def init_bar():
     rest = 1
     ind_bar = creator.Bar()
     while rest:
-        pitch = get_pitch(PITCH_LOW, PITCH_UP)
+        pitch = get_pitch()
         duration = get_duration(
             [dt for dt in range(int(math.ceil(1 / rest)), 65, 1) if
              dt in DURATION_RANGE])
@@ -106,11 +112,11 @@ def evolve_bar(pop=None, ngen=100, mu=100, cxpb=0.9, mutpb=0.1, seed=None):
     fitnesses = toolbox.map(toolbox.evaluate_bar, invalid_ind)
     for ind, fit in zip(invalid_ind, fitnesses):
         ind.fitness.values = fit
-
     # This is just to assign the crowding distance to the individuals
     # no actual selection is done
     pop = toolbox.select_bar(pop, len(pop))
 
+    print("FUCK")
     # todo: for catastrophe
     top_inds = tools.selBest(pop, SURVIVAL_SIZE)  # top  individuals to survive
 
@@ -147,7 +153,7 @@ def evolve_bar(pop=None, ngen=100, mu=100, cxpb=0.9, mutpb=0.1, seed=None):
 
         # todo: for catastrophe
         if util.cal_variance(logbook.select("avg")[-2].tolist(),
-                        logbook.select("avg")[-1].tolist()) < 0.01 or \
+                        logbook.select("avg")[-1].tolist()) < 0.01 and \
                         util.cal_variance(logbook.select("std")[-2].tolist(),
                                      logbook.select("std")[-1].tolist()) < 0.01:
             CATASTROPHE -= 1
@@ -248,18 +254,40 @@ def evolve_sentence(bars_pool, ngen=20, mu=10, cxpb=0.9, seed=None):
     return pop, logbook
 
 
+name2int = {
+    "C": 0, "C#": 1, "D": 2, "D#": 3, "E": 4, "F": 5,
+    "F#": 6, "G": 7, "G#": 8, "A": 9, "A#": 10, "B": 11
+}
+
+
+def init_pop_from_seq(seq):
+    ls = []
+    for i in seq:
+        rest = 1
+        ind_bar = creator.Bar()
+        while rest:
+            ind_bar.append(i[0])
+            rest -= i[1]
+        ls.append(ind_bar)
+    return ls
+
+
 def evolve_from_abc(abc, ngen=100, mu=100, cxpb=0.9, mutpb=0.1):
-    key, meter, notes = parse_abc(abc)
+    key, meter, notes = abcparse.parse_abc(abc)
     names, durations = zip(*
                            [(note[0].rstrip("*"), note[1]) for note in notes])
-    names = [name[:-1].upper() + "-" + name[-1] for name in names]
-    pop = construct_bars(names, durations, container=creator.Bar)
-    ppb, dpb = count(names, durations)
+    names = [(name[:-1].upper(), int(name[-1])) for name in names]
+    pitchs = [name[1] * 12 + name2int[name[0]] for name in names]
+    prepare_pop = [(p + d / 100.0, 1.0 / d) for p, d in zip(pitchs, durations)]
+    pop = init_pop_from_seq(prepare_pop)
 
-    toolbox.unregister("mate_bar")
-    toolbox.unregister("mutate_bar")
-    toolbox.register("mate_bar", crossover.cross_bar, ppb=ppb, dpb=dpb)
-    toolbox.register("mutate_bar", mutation.mutate_bar, ppb=ppb, dpb=dpb)
+    # ppb, dpb = count(names, durations)
+    #
+    # toolbox.unregister("mate_bar")
+    # toolbox.unregister("mutate_bar")
+    # toolbox.register("mate_bar", crossover.cross_bar, ppb=ppb, dpb=dpb)
+    # toolbox.register("mutate_bar", mutation.mutate_bar, ppb=ppb, dpb=dpb)
+
     evolved_pop, log = evolve_bar(pop=pop, ngen=ngen, mu=mu, cxpb=cxpb,
                                   mutpb=mutpb)
     return evolved_pop, log

@@ -5,13 +5,16 @@ import os
 import time
 import math
 import webbrowser
+from copy import deepcopy
 
 import click
 import fire
 import numpy as np
 import matplotlib.pyplot as plt
 import mingus.extra.lilypond as lp
+from deap import creator
 from mingus.containers.note import NoteFormatError, Note
+from mingus.containers.note_container import NoteContainer
 from mingus.containers.bar import Bar
 from mingus.containers.track import Track
 from mingus.containers.composition import Composition
@@ -114,14 +117,22 @@ class Controller(object):
         basic_beat = int(meter.split("/")[-1])  # Get baisc beat from meter
         self.STANDARD_DURATION = basic_beat * 60 / bpm
 
-    @play
     def play_abc(self, abc_file):
         key, meter, notes = abcparse.parse_abc(abc_file)
-        names, durations = zip(
-            *[(note[0].rstrip("*"), note[1]) for note in notes])
-        names = [name[:-1].upper() + "-" + name[-1] for name in names]
-        bars = common.construct_bars(names, durations, Bar)
-        return bars, None
+        names, durations = zip(*
+            [(note[0].rstrip("*").upper(), int(note[1])) for note in notes])
+        names = [[name[:-1], int(name[-1])] for name in names]
+
+        track = Track()
+        for name, duration in zip(names, durations):
+            print(name, duration)
+            track.add_notes(Note(*name), duration=duration)
+
+        lp.to_pdf(lp.from_Track(track), "tmp.pdf")
+        midi_file_out.write_Track("tmp.mid", track)
+        webbrowser.open_new("tmp.pdf.pdf")
+
+        fluidsynth.play_Track(track)
 
     def generate(self, ngen=100, mu=100, cxpb=0.9, mutpb=0.1):
 
@@ -154,14 +165,15 @@ class Controller(object):
         webbrowser.open_new("out.png")
         fluidsynth.play_Track(track)
 
-
         # bars = [Bar(Note().from_int(int(pitch)), int(round(duration * 100))) for pitch, duration in zip(pitchs, durations)]
 
         print(log)
 
     def imitate(self, abc_file, ngen=100, mu=100, cxpb=0.9, mutpb=0.1):
-        pop, log = evolver.evolve_from_abc(abc_file, ngen=ngen, mu=mu, cxpb=cxpb,
-                                       mutpb=mutpb)
+        pop, log = evolver.evolve_from_abc(abc_file, ngen=ngen, mu=mu,
+                                           cxpb=cxpb,
+                                           mutpb=mutpb)
+        print(pop)
         print(set(pop))
         print(len(set(pop)))
 
@@ -190,7 +202,6 @@ class Controller(object):
         fig.savefig("out.png")
         webbrowser.open_new("out.png")
         fluidsynth.play_Track(track)
-
 
         # bars = [Bar(Note().from_int(int(pitch)), int(round(duration * 100))) for pitch, duration in zip(pitchs, durations)]
 

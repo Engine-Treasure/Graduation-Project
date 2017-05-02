@@ -183,13 +183,10 @@ def computeCrowdingDist(pareto_fronts):
     function retuns a dictonnary where the key is the
     fitness and the value the crowding distance.
     """
-    print(pareto_fronts)
     nobj = len(pareto_fronts[0][0])
-    print(nobj)
     distances = defaultdict(float)
 
     for front in pareto_fronts:
-        print("FRONT", front)
         for i in range(nobj):
             front.sort(key=itemgetter(i))
             distances[front[-1]] = float("inf")
@@ -199,7 +196,6 @@ def computeCrowdingDist(pareto_fronts):
             norm = float(front[-1][i] - front[0][i]) * nobj
             for prev, cur, nex in zip(front[:-2], front[1:-1], front[2:]):
                 distances[cur] += (nex[i] - prev[i]) / norm
-    exit(0)
     return distances
 
 __all__ = ['selNSGA2', 'selTournamentFitnessDCD']

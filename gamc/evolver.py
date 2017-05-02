@@ -40,8 +40,11 @@ def get_pitch():
     # return random.randint(low, up)
     # pitch = np.random.choice(range(0, 88), p=pitch_probability)
     # return pitch if 36 <= pitch <= 83 else get_pitch()
+    # pitch = np.random.choice([
+    #     36, 38, 40, 41, 43, 45, 47, 48, 50, 52, 53, 55, 57, 59, 60, 62, 64, 65, 67, 69
+    # ])
     pitch = np.random.choice([
-        36, 38, 40, 41, 43, 45, 47, 48, 50, 52, 53, 55, 57, 59, 60, 62, 64, 65, 67, 69
+        48, 50, 52, 53, 55, 57, 59
     ])
     return pitch
 

@@ -145,5 +145,5 @@ class BarCrossover(object):
         pass
 
 
-__method__ = ["cxUniform"]  # , "cxMessyOnePoint", "cxOnePoint", "cxTwoPoint"]
+__method__ = ["cxTwoPoint"]  # , "cxMessyOnePoint", "cxOnePoint", "cxTwoPoint"]
 __all__ = ["cross_bar", "cross_sentence"]

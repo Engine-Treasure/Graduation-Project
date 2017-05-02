@@ -40,17 +40,19 @@ def play(func):
         webbrowser.open("out.pdf.pdf")
         midi_file_out.write_Track("out.mid", track)
 
-        fig = plt.figure()
+        if log:
 
-        plt.grid(True, 'major', 'y', ls='--', lw=.5, c='k', alpha=.3)
+            fig = plt.figure()
 
-        headers = ["avg", "std", "min", "max"]
-        for rank, header in enumerate(headers):
-            plt.scatter(np.arange(len(log.select(header))),
-                        np.sum(np.array(log.select(header)) / 8, axis=1))
+            plt.grid(True, 'major', 'y', ls='--', lw=.5, c='k', alpha=.3)
 
-        fig.savefig("out.png")
-        webbrowser.open_new("out.png")
+            headers = ["avg", "std", "min", "max"]
+            for rank, header in enumerate(headers):
+                plt.scatter(np.arange(len(log.select(header))),
+                            np.sum(np.array(log.select(header)) / 8, axis=1))
+
+            fig.savefig("out.png")
+            webbrowser.open_new("out.png")
 
         fluidsynth.play_Track(track)
 

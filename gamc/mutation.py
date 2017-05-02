@@ -15,33 +15,39 @@ __author__ = "kissg"
 __date__ = "2017-03-29"
 
 
-def mutate_bar(individual):
-    mutation_method = __mutation_bar__
-    func = getattr(MutationBar, random.choice(mutation_method))
-    return func(individual)
-
-
 __mutation_bar__ = [
     "mut_none_bar",
     "mut_reverse_bar",
     "mut_rotate_right_bar",
     "mut_invert_pitch_bar",
     "mut_ascend_pitch_bar",
-    # "mut_transpose_bar",
-    "mut_descend_pitch_bar"
+    "mut_transpose_bar",
+    "mut_descend_pitch_bar",
+    "mut_regenerate_bar"
 ]
+
+
+def mutate_bar(individual):
+    mutation_method = __mutation_bar__
+    func = getattr(MutationBar, random.choice(mutation_method))
+    return func(individual)
 
 
 class MutationBar(object):
     @classmethod
-    def mut_none_bar(self, ind_bar):
+    def mut_none_bar(cls, ind_bar):
         """
         :return: bar individual itself
         """
         return ind_bar,
 
     @classmethod
-    def mut_reverse_bar(self, ind_bar):
+    def mut_regenerate_bar(cls, ind_bar):
+        bar = gen.init_bar()
+        return ind_bar,
+
+    @classmethod
+    def mut_reverse_bar(cls, ind_bar):
         """
         :return: reversed bar individual
         """
@@ -49,7 +55,7 @@ class MutationBar(object):
         return ind_bar,
 
     @classmethod
-    def mut_rotate_right_bar(self, ind_bar):
+    def mut_rotate_right_bar(cls, ind_bar):
         """
         :return: 
         """
@@ -60,7 +66,7 @@ class MutationBar(object):
         return ind_bar,
 
     @classmethod
-    def mut_invert_pitch_bar(self, ind_bar):
+    def mut_invert_pitch_bar(cls, ind_bar):
         """
         :return: 将音高倒置, 围绕中央 C (48)
         """
@@ -70,7 +76,7 @@ class MutationBar(object):
         return creator.Bar([p + d for p, d in zip(pitchs, durations)]),
 
     @classmethod
-    def mut_ascend_pitch_bar(self, ind_bar):
+    def mut_ascend_pitch_bar(cls, ind_bar):
         """
         :return: 
         """
@@ -78,7 +84,7 @@ class MutationBar(object):
         return creator.Bar(ind_bar),
 
     @classmethod
-    def mut_descend_pitch_bar(self, ind_bar):
+    def mut_descend_pitch_bar(cls, ind_bar):
         """
         :return: 
         """
@@ -86,7 +92,7 @@ class MutationBar(object):
         return creator.Bar(ind_bar),
 
     @classmethod
-    def mut_transpose_bar(self, ind_bar):
+    def mut_transpose_bar(cls, ind_bar):
         """
         :return: 
         """

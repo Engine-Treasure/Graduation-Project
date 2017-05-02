@@ -43,6 +43,7 @@ def selNSGA2(individuals, k):
     for ind in chosen:
         ind.fitness.crowding_dist = crowding_dist[ind.fitness.wvalues]
         ind.fitness.rank = ranks[ind.fitness.wvalues]
+    print(chosen)
 
     return chosen
 

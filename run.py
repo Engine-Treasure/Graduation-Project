@@ -4,6 +4,7 @@ import json
 import os
 import time
 import math
+import array
 import webbrowser
 from copy import deepcopy
 
@@ -24,6 +25,12 @@ from gamc import evolver, txtimg, abcparse, common
 
 __author__ = "kissg"
 __date__ = "2017-04-13"
+
+
+name2int = {
+    "C": 0, "C#": 1, "D": 2, "D#": 3, "E": 4, "F": 5,
+    "F#": 6, "G": 7, "G#": 8, "A": 9, "A#": 10, "B": 11
+}
 
 
 def play(func):
@@ -120,7 +127,8 @@ class Controller(object):
     def play_abc(self, abc_file):
         key, meter, notes = abcparse.parse_abc(abc_file)
         names, durations = zip(*
-            [(note[0].rstrip("*").upper(), int(note[1])) for note in notes])
+                               [(note[0].rstrip("*").upper(), int(note[1])) for
+                                note in notes])
         names = [[name[:-1], int(name[-1])] for name in names]
 
         track = Track()
@@ -136,7 +144,8 @@ class Controller(object):
 
     def generate(self, ngen=100, mu=100, cxpb=0.9, mutpb=0.1):
 
-        pop, log = evolver.evolve_bar(ngen=ngen, mu=mu, cxpb=cxpb, mutpb=mutpb)
+        pop, log = evolver.evolve_bar_c(ngen=ngen, mu=mu, cxpb=cxpb,
+                                        mutpb=mutpb)
         print(len(set(pop)))
 
         track = Track()
@@ -173,10 +182,6 @@ class Controller(object):
         pop, log = evolver.evolve_from_abc(abc_file, ngen=ngen, mu=mu,
                                            cxpb=cxpb,
                                            mutpb=mutpb)
-        print(pop)
-        print(set(pop))
-        print(len(set(pop)))
-
         track = Track()
         for ind in pop:
             durations, pitchs = zip(*[math.modf(note) for note in ind])
@@ -219,11 +224,18 @@ class Controller(object):
             elif key == "\r":
                 durations.append(
                     time2duration(time.time() - t, self.STANDARD_DURATION))
+                prepare_pop = [(note.octave * 12 + name2int[note.name] + duration / 100.0, 1.0 / duration) for note, duration in
+                       zip(notes, durations)]
+                print(prepare_pop)
+                pop = common.init_pop_from_seq(prepare_pop)
+                # print(pop)
+                # pop = array.array("d", pop)
+
                 try:
-                    bars, log = evolver.evolve_from_keyboard(notes, durations,
-                                                             ngen=ngen, mu=mu,
-                                                             cxpb=cxpb,
-                                                             mutpb=mutpb)
+                    bars, log = evolver.evolve_bar_nc(pop,
+                                                      ngen=ngen, mu=mu,
+                                                      cxpb=cxpb,
+                                                      mutpb=mutpb)
                     play_back(bars)
 
                 except KeyboardInterrupt:
@@ -236,7 +248,7 @@ class Controller(object):
             elif key in self.KEYMAP:
                 v = self.KEYMAP.get(key)
                 if v in ("OD", "OU"):  # octave down and octave up
-                    if v == "OD":
+                    if v == "OU":
                         self.OCTAVE = self.OCTAVE - 1 \
                             if self.OCTAVE < 8 else self.OCTAVE
                         print(txtimg.txtimg[self.OCTAVE])

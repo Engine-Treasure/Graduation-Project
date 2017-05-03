@@ -42,7 +42,9 @@ def init_pop_from_seq(seq):
             ls.append(deepcopy(bar))
             bar = creator.Bar()
             bar.append(i[0])
-            rest = 1.0 - i[1]
+            rest = 1.0 - i[1] if i[1] != 1.0 else 1.0
+    if rest != 1.0:
+        ls.append(deepcopy(bar))
     return ls
 
 

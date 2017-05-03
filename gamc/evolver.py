@@ -24,7 +24,7 @@ from statistics import duration_frequencies as duration_probability
 __author__ = "kissg"
 __date__ = "2017-03-10"
 
-creator.create("BarFitness", base.Fitness, weights=(1.0, 1.0, 1.0, 1.0, 1.0,))
+creator.create("BarFitness", base.Fitness, weights=(1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0))
 # pitch.duration
 creator.create("Bar", array.array, typecode="d", fitness=creator.BarFitness)
 
@@ -122,6 +122,7 @@ def evolve_bar_nc(pop=None, ngen=100, mu=100, cxpb=0.9, mutpb=0.1, seed=None):
 
         for ind1, ind2 in zip(offspring[::2], offspring[1::2]):
             if random.random() <= cxpb:
+                a = deepcopy(ind1)
                 toolbox.mate_bar(ind1, ind2)
 
             toolbox.mutate_bar(ind1)
@@ -177,13 +178,12 @@ def evolve_bar_c(pop=None, ngen=100, mu=100, cxpb=0.9, mutpb=0.1, seed=None):
         if mu >= 1000:
             N = mu
         elif mu >= 100:
-            N = mu * 10
+            N = mu * 5
         elif mu > 0:
-            N = mu * 100
+            N = mu * 50
         else:
             raise ValueError
 
-        print(N)
         pop = toolbox.pop_bar(n=N)
 
     # Evaluate the individuals with an invalid fitness
@@ -371,18 +371,19 @@ def init_pop_from_seq(seq):
             ls.append(deepcopy(bar))
             bar = creator.Bar()
             bar.append(i[0])
-            rest = 1.0 - i[1]
+            rest = 1.0 - i[1] if i[1] != 1.0 else 1.0
+    if rest != 1.0:
+        ls.append(deepcopy(bar))
     return ls
 
 
-def evolve_from_abc(abc, ngen=100, mu=100, cxpb=0.9, mutpb=0.1):
+def evolve_from_abc(abc, ngen=100, mu=None, cxpb=0.9, mutpb=0.1):
     key, meter, notes = abcparse.parse_abc(abc)
     names, durations = zip(*
                            [(note[0].rstrip("*"), note[1]) for note in notes])
     names = [(name[:-1].upper(), int(name[-1])) for name in names]
     pitchs = [name[1] * 12 + name2int[name[0]] for name in names]
     prepare_pop = [(p + d / 100.0, 1.0 / d) for p, d in zip(pitchs, durations)]
-    print(prepare_pop)
     pop = init_pop_from_seq(prepare_pop)
 
     # ppb, dpb = count(names, durations)
@@ -391,6 +392,7 @@ def evolve_from_abc(abc, ngen=100, mu=100, cxpb=0.9, mutpb=0.1):
     # toolbox.unregister("mutate_bar")
     # toolbox.register("mate_bar", crossover.cross_bar, ppb=ppb, dpb=dpb)
     # toolbox.register("mutate_bar", mutation.mutate_bar, ppb=ppb, dpb=dpb)
+    mu = mu if mu else len(pop)
 
     evolved_pop, log = evolve_bar_nc(pop=pop, ngen=ngen, mu=mu, cxpb=cxpb,
                                      mutpb=mutpb)
@@ -412,68 +414,3 @@ def evolve_from_keyboard(notes, durations, ngen=100, mu=100, cxpb=0.9,
     evolved_pop = [bar for bar_list in evolved_pop for bar in bar_list]
 
     return evolved_pop, log
-
-
-if __name__ == '__main__':
-    bars_pool, log = evolve_from_abc(
-        "/home/kissg/Developing/Graduation-Project/data/ABCs/999.abc")
-    track2 = Track()
-    for i, bar in enumerate(tools.selTournament(bars_pool, 16, 4)):
-        track2.add_bar(bar)
-
-    lp.to_pdf(lp.from_Track(track2), "top_bar.pdf")
-
-    midi_file_out.write_Track("top_bar.mid", track2)
-    # exit(0)
-    key, meter, notes = parse_abc(
-        "/home/kissg/Developing/Graduation-Project/data/ABCs/999.abc")
-    notes, durations = zip(*[(note[0].rstrip("*"), note[1]) for note in notes])
-    notes = [note[:-1].upper() + "-" + note[-1] for note in notes]
-
-    # print(key, meter, notes, durations)
-
-    pop = construct_bars(notes, durations, container=creator.Bar)
-    track3 = Track()
-    for i, bar in enumerate(pop, 16):
-        track3.add_bar(bar)
-    lp.to_pdf(lp.from_Track(track3), "origin.pdf")
-
-    midi_file_out.write_Track("origin.mid", track3)
-    # for p in pop:
-    #     print(p)
-    #     fluidsynth.play_Bar(p)
-
-    toolbox.unregister("mate_bar")
-    toolbox.unregister("mutate_bar")
-    ppb, dpb = count(notes, durations)
-    # print(ppb)
-    toolbox.register("mate_bar", crossover.cross_bar, ppb=ppb, dpb=dpb)
-    toolbox.register("mutate_bar", mutation.mutate_bar, indpb=0.10, ppb=ppb,
-                     dpb=dpb)
-
-    bars_pool, log_bar = evolve_bar_c(pop=pop)
-    # print(
-    #     "Best individual is: {}\n with fitness: {}".format(hof[0],
-    #                                                        hof[0].fitness))
-    # print(len(set(bars_pool)))
-    track2 = Track()
-    for i, bar in enumerate(tools.selTournament(bars_pool, 16, 4)):
-        track2.add_bar(bar)
-
-    lp.to_pdf(lp.from_Track(track2), "top_bar.pdf")
-
-    midi_file_out.write_Track("top_bar.mid", track2)
-
-    # toolbox.register("select", tools.selTournament, tournsize=3)
-
-    pop_sentence, log_sentence = evolve_sentence()
-
-    track = Track()
-    for i, sentence in enumerate(tools.selRoulette(pop_sentence, 4)):
-        for bar in sentence:
-            track.add_bar(bar)
-
-    lp.to_pdf(lp.from_Track(track), "top_sentence.pdf")
-
-    midi_file_out.write_Track("top_sentence.mid", track)
-    # exit(0)

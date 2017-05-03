@@ -115,7 +115,7 @@ def init_bar():
     while rest:
         pitch = get_pitch()
         duration = get_duration(
-            [dt for dt in range(int(math.ceil(1 / rest)), 65, 1) if
+            [dt for dt in range(int(math.ceil(1 / rest)), 33, 1) if
              dt in DURATION_RANGE])
         ind_bar.append(pitch + duration / 100)
         rest -= 1 / duration

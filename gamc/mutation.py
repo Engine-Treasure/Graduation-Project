@@ -1,5 +1,7 @@
 # -*- coding: utf-8 -*-
 
+from __future__ import division
+
 import random
 import array
 import math
@@ -22,15 +24,16 @@ __mutation_bar__ = [
     "mut_invert_pitch_bar",
     "mut_ascend_pitch_bar",
     "mut_transpose_bar",
-    "mut_descend_pitch_bar",
-    "mut_regenerate_bar"
+    # "mut_regenerate_bar",
+    "mut_descend_pitch_bar"
 ]
 
 
 def mutate_bar(individual):
     mutation_method = __mutation_bar__
     func = getattr(MutationBar, random.choice(mutation_method))
-    return func(individual)
+    func(individual)
+    return individual,
 
 
 class MutationBar(object):
@@ -39,12 +42,37 @@ class MutationBar(object):
         """
         :return: bar individual itself
         """
-        return ind_bar,
+        return ind_bar
 
-    @classmethod
-    def mut_regenerate_bar(cls, ind_bar):
-        bar = gen.init_bar()
-        return ind_bar,
+    # @classmethod
+    # def mut_regenerate_bar(cls, ind_bar):
+    #     rest = 1
+    #     print(id(ind_bar))
+    #     print(ind_bar)
+    #     for i in range(len(ind_bar)):
+    #         pitch = gen.get_pitch()
+    #         duration = gen.get_duration([
+    #             dt for dt in range(int(math.ceil(1 / rest)), 33, 1)
+    #             if dt in gen.DURATION_RANGE
+    #         ])
+    #         ind_bar[i] = pitch + duration / 100.0
+    #         rest -= 1 / duration
+    #         if rest == 0.0:
+    #             if i < len(ind_bar) - 1:
+    #                 for j in range(len(ind_bar) - 1 - i):
+    #                     ind_bar.pop()
+    #             break
+    #     else:
+    #         while rest:
+    #             pitch = gen.get_pitch()
+    #             duration = gen.get_duration([
+    #                 dt for dt in range(int(math.ceil(1 / rest)), 33, 1)
+    #                 if dt in gen.DURATION_RANGE
+    #             ])
+    #             ind_bar.append(pitch + duration / 100.0)
+    #             rest -= 1 / duration
+    #
+    #     return ind_bar
 
     @classmethod
     def mut_reverse_bar(cls, ind_bar):
@@ -52,18 +80,21 @@ class MutationBar(object):
         :return: reversed bar individual
         """
         ind_bar.reverse()
-        return ind_bar,
+        return ind_bar
 
     @classmethod
     def mut_rotate_right_bar(cls, ind_bar):
         """
         :return: 
         """
-        # todo: should make n a paarmeter?
+        # todo: should make n a parameter?
         # randint - including both end points.
         n = random.randint(0, len(ind_bar) - 1)
-        ind_bar = ind_bar[-n:] + ind_bar[:-n]
-        return ind_bar,
+        ls = ind_bar[-n:] + ind_bar[:-n]
+        for i, ele in enumerate(ls):
+            ind_bar[i] = ele
+
+        return ind_bar
 
     @classmethod
     def mut_invert_pitch_bar(cls, ind_bar):
@@ -73,23 +104,29 @@ class MutationBar(object):
         durations, pitchs = zip(*[math.modf(note) for note in ind_bar])
         pitchs = [96 - p for p in pitchs]
         # Notice - ind_bar is a instance of array.array
-        return creator.Bar([p + d for p, d in zip(pitchs, durations)]),
+        for i, pd in enumerate(zip(pitchs, durations)):
+            ind_bar[i] = pd[0] + pd[1]
+        return ind_bar
 
     @classmethod
     def mut_ascend_pitch_bar(cls, ind_bar):
         """
         :return: 
         """
-        ind_bar = sorted(ind_bar, key=lambda t: int(t))
-        return creator.Bar(ind_bar),
+        asc_sorted = sorted(ind_bar, key=lambda t: int(t))
+        for i, ele in enumerate(asc_sorted):
+            ind_bar[i] = ele
+        return ind_bar
 
     @classmethod
     def mut_descend_pitch_bar(cls, ind_bar):
         """
         :return: 
         """
-        ind_bar = sorted(ind_bar, key=lambda t: int(t), reverse=True)
-        return creator.Bar(ind_bar),
+        desc_sorted = sorted(ind_bar, key=lambda t: int(t), reverse=True)
+        for i, ele in enumerate(desc_sorted):
+            ind_bar[i] = ele
+        return ind_bar
 
     @classmethod
     def mut_transpose_bar(cls, ind_bar):
@@ -101,8 +138,12 @@ class MutationBar(object):
         durations, pitchs = zip(*[math.modf(note) for note in ind_bar])
         ls = [p + n + d if p + n < 97 else 192 - p - n + d for p, d in
               zip(pitchs, durations)]
+
+        for i, ele in enumerate(ls):
+            ind_bar[i] = ele
+
         # return array.array("d", ls),
-        return creator.Bar(ls),
+        return ind_bar
 
     # @classmethod
     # def mut_delete_bar(self, ind_bar):

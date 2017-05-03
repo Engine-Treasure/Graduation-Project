@@ -43,7 +43,6 @@ def selNSGA2(individuals, k):
     for ind in chosen:
         ind.fitness.crowding_dist = crowding_dist[ind.fitness.wvalues]
         ind.fitness.rank = ranks[ind.fitness.wvalues]
-    print(chosen)
 
     return chosen
 
@@ -84,7 +83,6 @@ def selTournamentFitnessDCD(individuals, k):
 
 def isDominated(wvalues1, wvalues2):
     """Returns whether or not *wvalues1* dominates *wvalues2*.
-
     :param wvalues1: The weighted fitness values that would be dominated.
     :param wvalues2: The weighted fitness values of the dominant.
     :returns: :obj:`True` if wvalues2 dominates wvalues1, :obj:`False`
@@ -92,10 +90,9 @@ def isDominated(wvalues1, wvalues2):
     """
     not_equal = False
     for self_wvalue, other_wvalue in zip(wvalues1, wvalues2):
-        # ENGINE: unlike fortin's MOP, mine is maximization !!!
-        if self_wvalue < other_wvalue:
+        if self_wvalue > other_wvalue:
             return False
-        elif self_wvalue > other_wvalue:
+        elif self_wvalue < other_wvalue:
             not_equal = True
     return not_equal
 

@@ -178,8 +178,8 @@ class Controller(object):
 
         print(log)
 
-    def imitate(self, abc_file, ngen=100, mu=100, cxpb=0.9, mutpb=0.1):
-        pop, log = evolver.evolve_from_abc(abc_file, ngen=ngen, mu=mu,
+    def imitate(self, abc_file, ngen=100, cxpb=0.9, mutpb=0.1):
+        pop, log = evolver.evolve_from_abc(abc_file, ngen=ngen,
                                            cxpb=cxpb,
                                            mutpb=mutpb)
         track = Track()
@@ -204,8 +204,8 @@ class Controller(object):
             plt.scatter(np.arange(len(log.select(header))),
                         np.sum(np.array(log.select(header)) / 8, axis=1))
 
-        fig.savefig("out.png")
-        webbrowser.open_new("out.png")
+        fig.savefig("tmp.png")
+        webbrowser.open_new("tmp.png")
         fluidsynth.play_Track(track)
 
         # bars = [Bar(Note().from_int(int(pitch)), int(round(duration * 100))) for pitch, duration in zip(pitchs, durations)]
@@ -224,19 +224,43 @@ class Controller(object):
             elif key == "\r":
                 durations.append(
                     time2duration(time.time() - t, self.STANDARD_DURATION))
-                prepare_pop = [(note.octave * 12 + name2int[note.name] + duration / 100.0, 1.0 / duration) for note, duration in
+                prepare_pop = [(note.octave * 12 + name2int[note.name] + round(duration) / 100.0, 1.0 / duration) for note, duration in
                        zip(notes, durations)]
-                print(prepare_pop)
                 pop = common.init_pop_from_seq(prepare_pop)
                 # print(pop)
                 # pop = array.array("d", pop)
 
                 try:
-                    bars, log = evolver.evolve_bar_nc(pop,
+                    print("POP", pop)
+                    pop, log = evolver.evolve_bar_nc(pop,
                                                       ngen=ngen, mu=mu,
                                                       cxpb=cxpb,
                                                       mutpb=mutpb)
-                    play_back(bars)
+                    track = Track()
+                    for ind in pop:
+                        durations, pitchs = zip(*[math.modf(note) for note in ind])
+                        notes = [Note().from_int(int(pitch)) if pitch < 1000 else None for pitch in pitchs]
+                        durations = [int(round(duration * 100)) for duration in durations]
+                        bar = Bar()
+                        for note, duration in zip(notes, durations):
+                            bar.place_notes(note, duration)
+                        track.add_bar(bar)
+
+                    lp.to_pdf(lp.from_Track(track), "tmp.pdf")
+                    midi_file_out.write_Track("tmp.mid", track)
+                    webbrowser.open("tmp.pdf.pdf")
+                    fig = plt.figure()
+
+                    plt.grid(True, 'major', 'y', ls='--', lw=.5, c='k', alpha=.3)
+
+                    headers = ["avg", "std", "min", "max"]
+                    for rank, header in enumerate(headers):
+                        plt.scatter(np.arange(len(log.select(header))),
+                                    np.sum(np.array(log.select(header)) / 8, axis=1))
+
+                    fig.savefig("out.png")
+                    webbrowser.open_new("out.png")
+                    fluidsynth.play_Track(track)
 
                 except KeyboardInterrupt:
                     pass

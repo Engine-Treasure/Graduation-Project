@@ -24,7 +24,7 @@ from statistics import duration_frequencies as duration_probability
 __author__ = "kissg"
 __date__ = "2017-03-10"
 
-creator.create("BarFitness", base.Fitness, weights=(1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0))
+creator.create("BarFitness", base.Fitness, weights=(1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0))
 # pitch.duration
 creator.create("Bar", array.array, typecode="d", fitness=creator.BarFitness)
 
@@ -178,9 +178,9 @@ def evolve_bar_c(pop=None, ngen=100, mu=100, cxpb=0.9, mutpb=0.1, seed=None):
         if mu >= 1000:
             N = mu
         elif mu >= 100:
-            N = mu * 5
+            N = mu * 2
         elif mu > 0:
-            N = mu * 50
+            N = mu * 20
         else:
             raise ValueError
 
@@ -256,93 +256,95 @@ def evolve_bar_c(pop=None, ngen=100, mu=100, cxpb=0.9, mutpb=0.1, seed=None):
             top_inds = tools.selBest(pop, SURVIVAL_SIZE)  # 更新 top
 
             CATASTROPHE = 5  # 重置灾变倒计时
+    pop = {i for i in tools.selBest(pop, N)}
 
-    offspring = toolbox.preselect_bar(pop, len(pop))
-    offspring = [toolbox.clone(ind) for ind in offspring]
-    invalid_ind = [ind for ind in offspring if not ind.fitness.valid]
-    fitnesses = toolbox.map(toolbox.evaluate_bar, invalid_ind)
-    for ind, fit in zip(invalid_ind, fitnesses):
-        ind.fitness.values = fit
-    pop = toolbox.select_bar(pop + offspring, mu)
-    record = stats.compile(pop)
-    logbook.record(gen=gen, evals=len(invalid_ind), **record)
-    print(logbook.stream)
+    # offspring = toolbox.preselect_bar(pop, len(pop))
+    # offspring = [toolbox.clone(ind) for ind in offspring]
+    # invalid_ind = [ind for ind in offspring if not ind.fitness.valid]
+    # fitnesses = toolbox.map(toolbox.evaluate_bar, invalid_ind)
+    # for ind, fit in zip(invalid_ind, fitnesses):
+    #     ind.fitness.values = fit
+    # pop = toolbox.select_bar(pop + offspring, mu)
+    # record = stats.compile(pop)
+    # logbook.record(gen=gen, evals=len(invalid_ind), **record)
+    # print(logbook.stream)
+
+    print(pop)
 
     return pop, logbook
 
 
-# def evolve_sentence(bars_pool, ngen=20, mu=10, cxpb=0.9, seed=None):
-#     creator.create("SentenceFitness", base.Fitness,
-#                    weights=(1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0))
-#     creator.create("Sentence", list, fitness=creator.SentenceFitness,
-#                    bars_pool=[])
-#
-#     toolbox.register("sentence", init_sentence, creator.Sentence,
-#                      bars_pool=bars_pool)
-#     toolbox.register("pop_sentence", tools.initRepeat, list, toolbox.sentence)
-#
-#     toolbox.register("evaluate", evaluate.evaluate_sentence)
-#     toolbox.register("mate", crossover.cross_sentence)
-#     toolbox.register("mutate", mutation.mutate_sentence)
-#     toolbox.register("preselect", fortin2013.selTournamentFitnessDCD)
-#     toolbox.register("select", fortin2013.selNSGA2)
-#     random.seed(seed)
-#
-#     stats = tools.Statistics(lambda ind: ind.fitness.values)
-#     stats.register("avg", np.mean)
-#     stats.register("std", np.std)
-#     stats.register("max", np.max)
-#     stats.register("min", np.min)
-#
-#     logbook = tools.Logbook()
-#     logbook.header = "gen", "evals", "std", "min", "avg", "max"
-#
-#     pop = toolbox.pop_sentence(n=mu)
-#
-#     # Evaluate the individuals with an invalid fitness
-#     invalid_ind = [ind for ind in pop if not ind.fitness.valid]
-#
-#     fitnesses = toolbox.map(toolbox.evaluate, invalid_ind)
-#     for ind, fit in zip(invalid_ind, fitnesses):
-#         ind.fitness.values = fit
-#
-#     # This is just to assign the crowding distance to the individuals
-#     # no actual selection is done
-#     pop = toolbox.select(pop, len(pop))
-#
-#     record = stats.compile(pop)
-#     logbook.record(gen=0, evals=len(invalid_ind), **record)
-#     print(logbook.stream)
-#
-#     # Begin the generational process
-#     for gen in range(1, ngen):
-#         # Vary the population
-#         offspring = toolbox.preselect(pop, len(pop))
-#         # offspring = [toolbox.clone(ind) for ind in offspring]
-#         for ind in offspring:
-#             toolbox.clone(ind)
-#
-#         for ind1, ind2 in zip(offspring[::2], offspring[1::2]):
-#             if random.random() <= cxpb:
-#                 toolbox.mate(ind1, ind2)
-#
-#             toolbox.mutate(ind1)
-#             toolbox.mutate(ind2)
-#             del ind1.fitness.values, ind2.fitness.values
-#
-#         # Evaluate the individuals with an invalid fitness
-#         invalid_ind = [ind for ind in offspring if not ind.fitness.valid]
-#         fitnesses = toolbox.map(toolbox.evaluate, invalid_ind)
-#         for ind, fit in zip(invalid_ind, fitnesses):
-#             ind.fitness.values = fit
-#
-#         # Select the next generation population
-#         pop = toolbox.select(pop + offspring, mu)
-#         record = stats.compile(pop)
-#         logbook.record(gen=gen, evals=len(invalid_ind), **record)
-#         print(logbook.stream)
-#
-#     return pop, logbook
+def evolve_sentence(bars_pool, ngen=20, mu=10, cxpb=0.9, seed=None):
+    creator.create("SentenceFitness", base.Fitness,
+                   weights=(1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0))
+    creator.create("Sentence", list, fitness=creator.SentenceFitness)
+
+    toolbox.register("sentence", init_sentence, creator.Sentence,
+                     bars_pool=bars_pool)
+    toolbox.register("pop_sentence", tools.initRepeat, list, toolbox.sentence)
+
+    toolbox.register("evaluate", evaluate.evaluate_sentence)
+    toolbox.register("mate", crossover.cross_sentence)
+    toolbox.register("mutate", mutation.mutate_sentence)
+    toolbox.register("preselect", fortin2013.selTournamentFitnessDCD)
+    toolbox.register("select", fortin2013.selNSGA2)
+    random.seed(seed)
+
+    stats = tools.Statistics(lambda ind: ind.fitness.values)
+    stats.register("avg", np.mean)
+    stats.register("std", np.std)
+    stats.register("max", np.max)
+    stats.register("min", np.min)
+
+    logbook = tools.Logbook()
+    logbook.header = "gen", "evals", "std", "min", "avg", "max"
+
+    pop = toolbox.pop_sentence(n=mu)
+
+    # Evaluate the individuals with an invalid fitness
+    invalid_ind = [ind for ind in pop if not ind.fitness.valid]
+
+    fitnesses = toolbox.map(toolbox.evaluate, invalid_ind)
+    for ind, fit in zip(invalid_ind, fitnesses):
+        ind.fitness.values = fit
+
+    # This is just to assign the crowding distance to the individuals
+    # no actual selection is done
+    pop = toolbox.select(pop, len(pop))
+
+    record = stats.compile(pop)
+    logbook.record(gen=0, evals=len(invalid_ind), **record)
+    print(logbook.stream)
+
+    # Begin the generational process
+    for gen in range(1, ngen):
+        # Vary the population
+        offspring = toolbox.preselect(pop, len(pop))
+        # offspring = [toolbox.clone(ind) for ind in offspring]
+        for ind in offspring:
+            toolbox.clone(ind)
+
+        for ind1, ind2 in zip(offspring[::2], offspring[1::2]):
+            if random.random() <= cxpb:
+                toolbox.mate(ind1, ind2)
+
+            toolbox.mutate(ind1)
+            toolbox.mutate(ind2)
+            del ind1.fitness.values, ind2.fitness.values
+
+        # Evaluate the individuals with an invalid fitness
+        invalid_ind = [ind for ind in offspring if not ind.fitness.valid]
+        fitnesses = toolbox.map(toolbox.evaluate, invalid_ind)
+        for ind, fit in zip(invalid_ind, fitnesses):
+            ind.fitness.values = fit
+
+        # Select the next generation population
+        pop = toolbox.select(pop + offspring, mu)
+        record = stats.compile(pop)
+        logbook.record(gen=gen, evals=len(invalid_ind), **record)
+        print(logbook.stream)
+
+    return pop, logbook
 
 
 name2int = {

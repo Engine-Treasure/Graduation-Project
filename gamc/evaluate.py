@@ -117,6 +117,10 @@ def grade_markov(pitch_pair, markov=None):
         return -1 / (1 + math.e ** (7 - rank / 2)) + 1
 
 
+def grade_range(pitch):
+    return 1.0 if 45 <= pitch <= 67 else 0.0
+
+
 def grade_octave_change(bar):
     """
     对整体八度变化的打分
@@ -184,10 +188,13 @@ def grade_diversity(seq):
     return 0.0 if len(seq) >= 2 * len(set(seq)) else 1.0
 
 
+
+
+
 def evaluate_bar(bar):
     # todo - kinds of evalute ways
     if len(bar) == 1:
-        return 0, 0, 0, 0, 0, 0, 0, 0, 0
+        return 0, 0, 0, 0, 0, 0, 0, 0, 0, 0
 
     try:
         durations, pitchs = zip(*[math.modf(note) for note in bar])
@@ -206,13 +213,14 @@ def evaluate_bar(bar):
     g_interval = np.mean([grade_interval(p) for p in pitch_pairs])
     g_duration = np.mean([grade_duration(d) for d in duration_pairs])
     g_markov = np.mean([grade_markov(p) for p in pitch_pairs])
+    g_range = np.mean([grade_range(p) for p in pitchs])
     g_length = grade_length(bar)
     g_pitch_change = grade_change(pitchs)
     g_duration_change = grade_change(durations)
     g_pitch_diversity = grade_diversity(pitchs)
     g_duration_diversity = grade_diversity(durations)
 
-    return g_chord, g_interval, g_duration, g_markov, g_length, g_pitch_change, \
+    return g_chord, g_interval, g_duration, g_markov, g_range, g_length, g_pitch_change, \
            g_duration_change, g_pitch_diversity, g_duration_diversity
 
 

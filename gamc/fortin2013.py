@@ -83,9 +83,9 @@ def isDominated(wvalues1, wvalues2):
     """
     not_equal = False
     for self_wvalue, other_wvalue in zip(wvalues1, wvalues2):
-        if self_wvalue < other_wvalue:
+        if self_wvalue > other_wvalue:
             return False
-        elif self_wvalue > other_wvalue:
+        elif self_wvalue < other_wvalue:
             not_equal = True
     return not_equal
 

@@ -1,5 +1,17 @@
 # -*- coding: utf-8 -*-
 
+"""
+- grade_chord - 对相邻音符的协和度打分
+- grade_interval - 对相邻音符的音程打分
+- grade_duration - 对相邻音符的时值差打分
+- grade_markov - 基于以马尔可夫表表示的作曲经验打分
+- grade_length - 对小节长度打分, 过长的小节, 音符太短促, 刺耳
+- grade_pitch_change - 对小节变化的打分: 是否出现连续相同的音高
+- grade_duration_change - 对小节变化的打分: 是否出现连续相同的时值
+- grade_pitch_diversity - 对小节多样性的打分: 小节包含的音高数
+- grade_duration_diversity - 对小节多样性的打分: 小节包含的时值数
+"""
+
 
 from __future__ import division
 
@@ -15,11 +27,6 @@ from statistics import markov_table
 
 __author__ = "kissg"
 __date__ = "2017-03-30"
-
-name2int = {
-    "C": 0, "C#": 1, "D": 2, "D#": 3, "E": 4, "F": 5,
-    "F#": 6, "G": 7, "G#": 8, "A": 9, "A#": 10, "B": 11
-}
 
 int2name = {
     0: "C", 1: "C#", 2: "D", 3: "D#", 4: "E", 5: "F",
@@ -58,17 +65,16 @@ def grade_chord(pitch_name_pair):
 def grade_interval(pitch_piar):
     """
     音程超过一个八度, 变化剧烈, 不和谐
-    音程过大的, 惩罚性扣分
     """
     diff = abs(pitch_piar[0] - pitch_piar[1])
     if diff < 8:
         return 1.0
     elif diff <= 10:
-        return 0.2
+        return 0.5
     elif diff <= 12:
-        return 0.0
+        return 0.25
     else:
-        return -1.0  # 音程超过 12 度, 严惩
+        return 0.0  # 音程超过 12 度, 严惩
 
 
 def grade_octave(octave_diffrence):
@@ -78,13 +84,13 @@ def grade_octave(octave_diffrence):
     if not octave_diffrence:  # 同一个八度
         return 1.0
     elif abs(octave_diffrence) == 1:  # 差一个八度
-        return 0.75
+        return 0.8
     elif abs(octave_diffrence) == 2:
-        return 0.25
+        return 0.5
     elif abs(octave_diffrence) == 3:
-        return 0.0
+        return 0.25
     else:
-        return -0.25
+        return 0.0
 
 
 def grade_duration(duration_pair):
@@ -97,7 +103,7 @@ def grade_duration(duration_pair):
     elif ratio in (0.25, 4.0):
         return 0.2
     else:
-        return -1.0  # 音值变化超过 4 倍, 严惩
+        return 0  # 音值变化超过 4 倍, 严惩
 
 
 def grade_markov(pitch_pair, markov=None):
@@ -108,25 +114,7 @@ def grade_markov(pitch_pair, markov=None):
         # 可能的异常是至少一个音高不在 markov table 中, 标记为异常音高, 打 0 分接口
         return 0.0
     else:
-        if rank >= 25:
-            return -1  # 严惩
-        else:
-            return -1 / (1 + math.e ** (7 - rank / 2)) + 1
-
-
-def grade_pitch_change(bar):
-    """
-    对整体音高变化的打分
-    """
-    # todo
-    pitches = [int(note[2][0]) if note[2] is not None else None for note in bar]
-    if util.is_monotone(pitches):
-        if util.is_strict_monotone(pitches):
-            return 0.5
-        else:
-            return 0
-    else:
-        return 1.0
+        return -1 / (1 + math.e ** (7 - rank / 2)) + 1
 
 
 def grade_octave_change(bar):
@@ -173,17 +161,39 @@ def grade_length(bar):
     elif length == 6:
         return 0.5
     elif length in [2, 7]:
-        return 0.0
+        return 0.25
     elif length >= 8:  # 极端情况, 扣分
-        return -1.0
+        return 0.0
+
+
+def grade_change(seq):
+    cur = 0
+    count = 1
+    for i in seq:
+        if i == cur:
+            count += 1
+        else:
+            cur = i
+            count = 1
+        if count > 3:
+            return 0.0
+    return 1.0
+
+
+def grade_diversity(seq):
+    return 0.0 if len(seq) >= 2 * len(set(seq)) else 1.0
 
 
 def evaluate_bar(bar):
     # todo - kinds of evalute ways
     if len(bar) == 1:
-        return 0, 0, 0, 0, 0
+        return 0, 0, 0, 0, 0, 0, 0, 0, 0
 
-    durations, pitchs = zip(*[math.modf(note) for note in bar])
+    try:
+        durations, pitchs = zip(*[math.modf(note) for note in bar])
+    except:
+        print(bar)
+        raise
 
     pitchs = [int(pitch) for pitch in pitchs]
     octaves, pitch_names = zip(*[divmod(pitch, 12) for pitch in pitchs])
@@ -196,9 +206,14 @@ def evaluate_bar(bar):
     g_interval = np.mean([grade_interval(p) for p in pitch_pairs])
     g_duration = np.mean([grade_duration(d) for d in duration_pairs])
     g_markov = np.mean([grade_markov(p) for p in pitch_pairs])
-    g_length = np.mean(grade_length(bar))
+    g_length = grade_length(bar)
+    g_pitch_change = grade_change(pitchs)
+    g_duration_change = grade_change(durations)
+    g_pitch_diversity = grade_diversity(pitchs)
+    g_duration_diversity = grade_diversity(durations)
 
-    return g_chord, g_interval, g_duration, g_markov, g_length
+    return g_chord, g_interval, g_duration, g_markov, g_length, g_pitch_change, \
+           g_duration_change, g_pitch_diversity, g_duration_diversity
 
 
 def grade_length_similarity(length_pair):

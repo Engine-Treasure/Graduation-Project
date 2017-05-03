@@ -4,14 +4,18 @@ import json
 import os
 import time
 import math
+import array
 import webbrowser
+from copy import deepcopy
 
 import click
 import fire
 import numpy as np
 import matplotlib.pyplot as plt
 import mingus.extra.lilypond as lp
+from deap import creator
 from mingus.containers.note import NoteFormatError, Note
+from mingus.containers.note_container import NoteContainer
 from mingus.containers.bar import Bar
 from mingus.containers.track import Track
 from mingus.containers.composition import Composition
@@ -21,6 +25,12 @@ from gamc import evolver, txtimg, abcparse, common
 
 __author__ = "kissg"
 __date__ = "2017-04-13"
+
+
+name2int = {
+    "C": 0, "C#": 1, "D": 2, "D#": 3, "E": 4, "F": 5,
+    "F#": 6, "G": 7, "G#": 8, "A": 9, "A#": 10, "B": 11
+}
 
 
 def play(func):
@@ -41,17 +51,19 @@ def play(func):
         webbrowser.open("out.pdf.pdf")
         midi_file_out.write_Track("out.mid", track)
 
-        fig = plt.figure()
+        if log:
 
-        plt.grid(True, 'major', 'y', ls='--', lw=.5, c='k', alpha=.3)
+            fig = plt.figure()
 
-        headers = ["avg", "std", "min", "max"]
-        for rank, header in enumerate(headers):
-            plt.scatter(np.arange(len(log.select(header))),
-                        np.sum(np.array(log.select(header)) / 8, axis=1))
+            plt.grid(True, 'major', 'y', ls='--', lw=.5, c='k', alpha=.3)
 
-        fig.savefig("out.png")
-        webbrowser.open_new("out.png")
+            headers = ["avg", "std", "min", "max"]
+            for rank, header in enumerate(headers):
+                plt.scatter(np.arange(len(log.select(header))),
+                            np.sum(np.array(log.select(header)) / 8, axis=1))
+
+            fig.savefig("out.png")
+            webbrowser.open_new("out.png")
 
         fluidsynth.play_Track(track)
 
@@ -114,18 +126,28 @@ class Controller(object):
         basic_beat = int(meter.split("/")[-1])  # Get baisc beat from meter
         self.STANDARD_DURATION = basic_beat * 60 / bpm
 
-    @play
     def play_abc(self, abc_file):
         key, meter, notes = abcparse.parse_abc(abc_file)
-        names, durations = zip(
-            *[(note[0].rstrip("*"), note[1]) for note in notes])
-        names = [name[:-1].upper() + "-" + name[-1] for name in names]
-        bars = common.construct_bars(names, durations, Bar)
-        return bars, None
+        names, durations = zip(*
+                               [(note[0].rstrip("*").upper(), int(note[1])) for
+                                note in notes])
+        names = [[name[:-1], int(name[-1])] for name in names]
+
+        track = Track()
+        for name, duration in zip(names, durations):
+            print(name, duration)
+            track.add_notes(Note(*name), duration=duration)
+
+        lp.to_pdf(lp.from_Track(track), "tmp.pdf")
+        midi_file_out.write_Track("tmp.mid", track)
+        webbrowser.open_new("tmp.pdf.pdf")
+
+        fluidsynth.play_Track(track)
 
     def generate(self, ngen=100, mu=100, cxpb=0.9, mutpb=0.1):
 
-        pop, log = evolver.evolve_bar(ngen=ngen, mu=mu, cxpb=cxpb, mutpb=mutpb)
+        pop, log = evolver.evolve_bar_c(ngen=ngen, mu=mu, cxpb=cxpb,
+                                        mutpb=mutpb)
         print(len(set(pop)))
 
         track = Track()
@@ -154,15 +176,43 @@ class Controller(object):
         webbrowser.open_new("out.png")
         fluidsynth.play_Track(track)
 
-
         # bars = [Bar(Note().from_int(int(pitch)), int(round(duration * 100))) for pitch, duration in zip(pitchs, durations)]
 
         print(log)
 
-    @play
-    def imitate(self, abc_file, ngen=100, mu=100, cxpb=0.9, mutpb=0.1):
-        return evolver.evolve_from_abc(abc_file, ngen=ngen, mu=mu, cxpb=cxpb,
-                                       mutpb=mutpb)
+    def imitate(self, abc_file, ngen=100, cxpb=0.9, mutpb=0.1):
+        pop, log = evolver.evolve_from_abc(abc_file, ngen=ngen,
+                                           cxpb=cxpb,
+                                           mutpb=mutpb)
+        track = Track()
+        for ind in pop:
+            durations, pitchs = zip(*[math.modf(note) for note in ind])
+            notes = [Note().from_int(int(pitch)) for pitch in pitchs]
+            durations = [int(round(duration * 100)) for duration in durations]
+            bar = Bar()
+            for note, duration in zip(notes, durations):
+                bar.place_notes(note, duration)
+            track.add_bar(bar)
+
+        lp.to_pdf(lp.from_Track(track), "tmp.pdf")
+        midi_file_out.write_Track("tmp.mid", track)
+        webbrowser.open("tmp.pdf.pdf")
+        fig = plt.figure()
+
+        plt.grid(True, 'major', 'y', ls='--', lw=.5, c='k', alpha=.3)
+
+        headers = ["avg", "std", "min", "max"]
+        for rank, header in enumerate(headers):
+            plt.scatter(np.arange(len(log.select(header))),
+                        np.sum(np.array(log.select(header)) / 8, axis=1))
+
+        fig.savefig("tmp.png")
+        webbrowser.open_new("tmp.png")
+        fluidsynth.play_Track(track)
+
+        # bars = [Bar(Note().from_int(int(pitch)), int(round(duration * 100))) for pitch, duration in zip(pitchs, durations)]
+
+        print(log)
 
     def interact(self, ngen=100, mu=100, cxpb=0.9, mutpb=0.1):
         notes = []
@@ -176,12 +226,43 @@ class Controller(object):
             elif key == "\r":
                 durations.append(
                     time2duration(time.time() - t, self.STANDARD_DURATION))
+                prepare_pop = [(note.octave * 12 + name2int[note.name] + round(duration) / 100.0, 1.0 / duration) for note, duration in
+                       zip(notes, durations)]
+                pop = common.init_pop_from_seq(prepare_pop)
+                # print(pop)
+                # pop = array.array("d", pop)
+
                 try:
-                    bars, log = evolver.evolve_from_keyboard(notes, durations,
-                                                             ngen=ngen, mu=mu,
-                                                             cxpb=cxpb,
-                                                             mutpb=mutpb)
-                    play_back(bars)
+                    print("POP", pop)
+                    pop, log = evolver.evolve_bar_nc(pop,
+                                                      ngen=ngen, mu=mu,
+                                                      cxpb=cxpb,
+                                                      mutpb=mutpb)
+                    track = Track()
+                    for ind in pop:
+                        durations, pitchs = zip(*[math.modf(note) for note in ind])
+                        notes = [Note().from_int(int(pitch)) if pitch < 1000 else None for pitch in pitchs]
+                        durations = [int(round(duration * 100)) for duration in durations]
+                        bar = Bar()
+                        for note, duration in zip(notes, durations):
+                            bar.place_notes(note, duration)
+                        track.add_bar(bar)
+
+                    lp.to_pdf(lp.from_Track(track), "tmp.pdf")
+                    midi_file_out.write_Track("tmp.mid", track)
+                    webbrowser.open("tmp.pdf.pdf")
+                    fig = plt.figure()
+
+                    plt.grid(True, 'major', 'y', ls='--', lw=.5, c='k', alpha=.3)
+
+                    headers = ["avg", "std", "min", "max"]
+                    for rank, header in enumerate(headers):
+                        plt.scatter(np.arange(len(log.select(header))),
+                                    np.sum(np.array(log.select(header)) / 8, axis=1))
+
+                    fig.savefig("out.png")
+                    webbrowser.open_new("out.png")
+                    fluidsynth.play_Track(track)
 
                 except KeyboardInterrupt:
                     pass
@@ -193,7 +274,7 @@ class Controller(object):
             elif key in self.KEYMAP:
                 v = self.KEYMAP.get(key)
                 if v in ("OD", "OU"):  # octave down and octave up
-                    if v == "OD":
+                    if v == "OU":
                         self.OCTAVE = self.OCTAVE - 1 \
                             if self.OCTAVE < 8 else self.OCTAVE
                         print(txtimg.txtimg[self.OCTAVE])

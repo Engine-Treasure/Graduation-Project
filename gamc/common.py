@@ -2,10 +2,12 @@
 
 from __future__ import division
 
+import math
 from copy import deepcopy
 from collections import Counter, OrderedDict
 
 from mingus.containers import Bar, Note
+from deap import creator
 
 from util import get_geometric_progression_of_2
 
@@ -18,6 +20,32 @@ name2int = {
     "C": 0, "C#": 1, "D": 2, "D#": 3, "E": 4, "F": 5,
     "F#": 6, "G": 7, "G#": 8, "A": 9, "A#": 10, "B": 11
 }
+
+
+def init_pop_from_seq(seq):
+    ls = []
+    rest = 1.0
+    bar = creator.Bar()
+    for i in seq:
+        if rest - i[1] > 0.0:
+            bar.append(i[0])
+            rest -= i[1]
+        elif rest - i[1] == 0.0:
+            bar.append(i[0])
+            ls.append(deepcopy(bar))
+            bar = creator.Bar()
+            rest = 1.0
+        else:
+            last_note = bar.pop()
+            rest = 1.0 - sum(1.0 / math.modf(note)[0] for note in bar)
+            bar.append(int(last_note) + 1.0 / rest / 100)
+            ls.append(deepcopy(bar))
+            bar = creator.Bar()
+            bar.append(i[0])
+            rest = 1.0 - i[1] if i[1] != 1.0 else 1.0
+    if rest != 1.0:
+        ls.append(deepcopy(bar))
+    return ls
 
 
 def construct_bars(names, durations, container=Bar):

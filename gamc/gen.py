@@ -2,9 +2,10 @@
 from __future__ import division
 
 import random
-from math import ceil
+import math
 
 import numpy as np
+from deap import creator
 from mingus.containers import Note
 
 import util
@@ -66,7 +67,7 @@ def init_bar(container, **kwargs):
     while not bar.is_full():
         # todo - place rest
         bar.place_notes(gen_pitch(),
-                        gen_duration(_max=int(ceil(bar.value_left()))))
+                        gen_duration(_max=int(math.ceil(bar.value_left()))))
     return bar
 
 
@@ -81,3 +82,42 @@ def init_sentence(container, **kwargs):
     for i in xrange(4):
         sentence.append(get_bar(sentence.bars_pool))
     return sentence
+
+
+PITCH_LOW, PITCH_UP = 0, 96
+DURATION_RANGE = [1, 2, 4, 8, 16, 32]
+
+
+def get_pitch():
+    # return random.randint(low, up)
+    # pitch = np.random.choice(range(0, 88), p=pitch_probability)
+    # return pitch if 36 <= pitch <= 83 else get_pitch()
+    pitch = np.random.choice([
+        36, 38, 40, 41, 43, 45, 47, 48, 50, 52, 53, 55, 57, 59, 60, 62, 64, 65, 67, 69
+    ])
+    # pitch = np.random.choice([
+    #     48, 50, 52, 53, 55, 57, 59
+    # ])
+    return pitch
+
+
+def get_duration(_range):
+    available_probability = duration_probability[-len(_range):]
+    new_total = sum(available_probability)
+    probality = [_ / new_total for _ in available_probability]  # 重新计算比例
+    duration = np.random.choice(_range, p=probality)
+    return duration
+
+
+def init_bar():
+    rest = 1
+    ind_bar = creator.Bar()
+    while rest:
+        pitch = get_pitch()
+        duration = get_duration(
+            [dt for dt in range(int(math.ceil(1 / rest)), 33, 1) if
+             dt in DURATION_RANGE])
+        ind_bar.append(pitch + duration / 100)
+        rest -= 1 / duration
+    return ind_bar
+

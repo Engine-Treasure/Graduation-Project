@@ -32,13 +32,21 @@ def cx_one_point_bar(ind_1, ind_2):
 
     atime = [t for t in ctime_1 if t in ctime_2]
 
-    if atime == [1.0]:  # atime may be empty list
+    if not atime:  # 没有重合的部分
         return ind_1, ind_2
     else:
-        atime.pop()  # remove 1.0
         chosen_pos = random.choice(atime)
         pos_1, pos_2 = ctime_1.index(chosen_pos), ctime_2.index(chosen_pos)
-        ind_1, ind_2 = ind_1[:pos_1] + ind_2[pos_2:], ind_2[:pos_2] + ind_1[pos_1:]
+        tmp_1, tmp_2 = ind_1[:pos_1] + ind_2[pos_2:], ind_2[:pos_2] + ind_1[pos_1:]
+
+        del ind_1[:]
+        for i, ele in enumerate(tmp_1):
+            ind_1.append(ele)
+
+        del ind_2[:]
+        for i, ele in enumerate(tmp_2):
+            ind_2.append(ele)
+
         return ind_1, ind_2
 
 
@@ -147,5 +155,5 @@ class BarCrossover(object):
         pass
 
 
-__method__ = ["cxUniform"]  # , "cxMessyOnePoint", "cxOnePoint", "cxTwoPoint"]
+__method__ = ["cxTwoPoint"]  # , "cxMessyOnePoint", "cxOnePoint", "cxTwoPoint"]
 __all__ = ["cross_bar", "cross_sentence"]

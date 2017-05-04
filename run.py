@@ -2,26 +2,21 @@
 
 import json
 import os
-import time
-import math
-import array
 import webbrowser
-from copy import deepcopy
 
 import click
 import fire
-import numpy as np
+import math
 import matplotlib.pyplot as plt
 import mingus.extra.lilypond as lp
-from deap import creator
-from mingus.containers.note import NoteFormatError, Note
-from mingus.containers.note_container import NoteContainer
+import numpy as np
+import time
 from mingus.containers.bar import Bar
+from mingus.containers.note import NoteFormatError, Note
 from mingus.containers.track import Track
-from mingus.containers.composition import Composition
 from mingus.midi import fluidsynth, midi_file_out
 
-from gamc import evolver, txtimg, abcparse, common
+from gamc import evolver, txtimg, abcparse, gen
 
 __author__ = "kissg"
 __date__ = "2017-04-13"
@@ -148,7 +143,7 @@ class Controller(object):
 
         pop, log = evolver.evolve_bar_c(ngen=ngen, mu=mu, cxpb=cxpb,
                                         mutpb=mutpb)
-        print(len(set(pop)))
+        print(len(set([i.tostring() for i in pop])))
 
         track = Track()
         for ind in pop:
@@ -228,7 +223,7 @@ class Controller(object):
                     time2duration(time.time() - t, self.STANDARD_DURATION))
                 prepare_pop = [(note.octave * 12 + name2int[note.name] + round(duration) / 100.0, 1.0 / duration) for note, duration in
                        zip(notes, durations)]
-                pop = common.init_pop_from_seq(prepare_pop)
+                pop = gen.init_pop_from_seq(prepare_pop)
                 # print(pop)
                 # pop = array.array("d", pop)
 

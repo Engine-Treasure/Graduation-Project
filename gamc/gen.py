@@ -32,9 +32,9 @@ def gen_pitch(_min=0, _max=88, p=None):
         return pitch if 130 < pitch.to_hertz() < 1976 else gen_pitch(_min, _max)
     else:
         return Note().from_int(np.random.choice(range(0, 88), p=p))
-    # 经验设置音高, 最常用的音高区间是 C3-B5
-    # return pitch if 130 < pitch.to_hertz() < 988 else gen_pitch(min, max)
-    # np.random.choice(range(min, max + 1)))
+        # 经验设置音高, 最常用的音高区间是 C3-B5
+        # return pitch if 130 < pitch.to_hertz() < 988 else gen_pitch(min, max)
+        # np.random.choice(range(min, max + 1)))
 
 
 def gen_duration(_min=32, _max=1, p=None):
@@ -93,7 +93,8 @@ def get_pitch():
     # pitch = np.random.choice(range(0, 88), p=pitch_probability)
     # return pitch if 36 <= pitch <= 83 else get_pitch()
     pitch = np.random.choice([
-        36, 38, 40, 41, 43, 45, 47, 48, 50, 52, 53, 55, 57, 59, 60, 62, 64, 65, 67, 69
+        36, 38, 40, 41, 43, 45, 47, 48, 50, 52, 53, 55, 57, 59, 60, 62, 64, 65,
+        67, 69
     ])
     # pitch = np.random.choice([
     #     48, 50, 52, 53, 55, 57, 59
@@ -121,3 +122,34 @@ def init_bar():
         rest -= 1 / duration
     return ind_bar
 
+
+name2int = {
+    "C": 0, "C#": 1, "D": 2, "D#": 3, "E": 4, "F": 5,
+    "F#": 6, "G": 7, "G#": 8, "A": 9, "A#": 10, "B": 11
+}
+
+
+def init_pop_from_seq(seq):
+    ls = []
+    rest = 1.0
+    bar = creator.Bar()
+    for i in seq:
+        if rest - i[1] > 0.0:
+            bar.append(i[0])
+            rest -= i[1]
+        elif rest - i[1] == 0.0:
+            bar.append(i[0])
+            ls.append(deepcopy(bar))
+            bar = creator.Bar()
+            rest = 1.0
+        else:
+            last_note = bar.pop()
+            rest = 1.0 - sum(1.0 / math.modf(note)[0] for note in bar)
+            bar.append(int(last_note) + 1.0 / rest / 100)
+            ls.append(deepcopy(bar))
+            bar = creator.Bar()
+            bar.append(i[0])
+            rest = 1.0 - i[1] if i[1] != 1.0 else 1.0
+    if rest != 1.0:
+        ls.append(deepcopy(bar))
+    return ls

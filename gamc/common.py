@@ -2,151 +2,116 @@
 
 from __future__ import division
 
+import itertools
 import math
-from copy import deepcopy
-from collections import Counter, OrderedDict
-
-from mingus.containers import Bar, Note
-from deap import creator
-
-from util import get_geometric_progression_of_2
+import numpy as np
+from pandas import DataFrame
 
 __author__ = "kissg"
 __date__ = "2017-04-11"
 
 PITCH_PROBABILITY = None
 
-name2int = {
-    "C": 0, "C#": 1, "D": 2, "D#": 3, "E": 4, "F": 5,
-    "F#": 6, "G": 7, "G#": 8, "A": 9, "A#": 10, "B": 11
-}
+
+def cal_length_similarity(l1, l2):
+    distance = abs(l1 - l2)
+    return 1.0 - distance * 0.3 if distance < 4 else 0.0
 
 
-def init_pop_from_seq(seq):
-    ls = []
-    rest = 1.0
-    bar = creator.Bar()
-    for i in seq:
-        if rest - i[1] > 0.0:
-            bar.append(i[0])
-            rest -= i[1]
-        elif rest - i[1] == 0.0:
-            bar.append(i[0])
-            ls.append(deepcopy(bar))
-            bar = creator.Bar()
-            rest = 1.0
+def cal_duration_similarity(d1, d2):
+    result = 1.0
+    cor_pair = zip(d1, d2)
+    for i1, i2 in cor_pair:
+        if i1 == i2:
+            continue
+        elif i1 / i2 in (2.0, 0.5):
+            result -= 0.1
+        elif i1 / i2 in (4.0, 0.25):
+            result -= 0.2
         else:
-            last_note = bar.pop()
-            rest = 1.0 - sum(1.0 / math.modf(note)[0] for note in bar)
-            bar.append(int(last_note) + 1.0 / rest / 100)
-            ls.append(deepcopy(bar))
-            bar = creator.Bar()
-            bar.append(i[0])
-            rest = 1.0 - i[1] if i[1] != 1.0 else 1.0
-    if rest != 1.0:
-        ls.append(deepcopy(bar))
-    return ls
+            result -= 0.3
+    return result if result > 0.0 else 0.0
 
 
-def construct_bars(names, durations, container=Bar):
-    """
-    :param notes: sequences of notes
-    :param durations: sequences of durations
-    :param container: mingus.containers.Bar or creator.Bar
-    :return: list of bars
-    """
-    bars = []
-    bar = container()
-    for name, duration in zip(names, durations):
-        # print(name, duration)
+def cal_pitch_similarity(p1, p2):
+    result = 1.0
+    cor_pair = zip(p1, p2)
+    for i1, i2 in cor_pair:
+        result -= 0.25 if i1 != i2 else 0
+    return result if result > 0.0 else 0.0
 
-        if bar.is_full():
-            bars.append(deepcopy(bar))
-            bar = container()
-            bar.place_notes(notes=name, duration=duration)
+
+def cal_octave_similarity(o1, o2):
+    result = 1.0
+    cor_pair = zip(o1, o2)
+    for i1, i2 in cor_pair:
+        if i1 == i2:
+            continue
+        elif abs(i1 - i2) == 1:
+            result -= 0.1
+        elif abs(i1 - i2) == 2:
+            result -= 0.2
         else:
-            # add new note to bar
-            if bar.place_notes(notes=name, duration=duration):
-                continue
-            else:  # fail, because the new note is long than remainder of bar
-                bar.place_rest(bar.value_left())
-                bars.append(deepcopy(bar))  # complete current bar
-                bar = container()  # create new bar
-                bar.place_notes(notes=name, duration=duration)
-
-    # run out of notes and durations, but the current bar is not full
-    if not bar.is_full():
-        bar.place_rest(bar.value_left())
-    bars.append(deepcopy(bar))
-
-    return bars
+            result -= 0.3
+    return result if result > 0.0 else 0.0
 
 
-def count(notes, durations):
-    """
-    :param notes: list of notes, a note is a Note instance or a str of note name
-    :param durations: list of durations
-    :return: return a tuple of pitch_probabilities and duration_probabilities
-    """
-    # note name to pitch
-    if isinstance(notes[0], str):
-        names, octaves = zip(*(note.split("-") for note in notes))
-        pitchs = [
-            int(octave) * 12 + name2int[name] for name, octave in zip(names, octaves)
-            ]
-    elif isinstance(notes[0], Note):
-        pitchs = [note.octave * 12 + name2int[note.name] for note in notes]
-    else:
-        raise TypeError
-
-    durations = [int(d) for d in durations]
-
-    pitchs = filter(lambda x: x in range(1, 97), pitchs)
-    durations = filter(lambda x: x in get_geometric_progression_of_2(1, 32), durations)
-
-    pitch_counter = Counter(pitchs)
-    # print(pitch_counter)
-    duration_counter = Counter(durations)
-    # print(duration_counter)
-
-    pitch_total = len(pitchs)
-    duration_total = len(durations)
-
-    pitch_probability = OrderedDict(
-        sorted({k: v / pitch_total for k, v in
-                pitch_counter.iteritems()}.iteritems(), key=lambda t: t[0]))
-    duration_probability = OrderedDict(
-        sorted({k: v / duration_total for k, v in
-                duration_counter.iteritems()}.iteritems(), key=lambda t: t[0]))
-
-    pitch_probability_list = [
-        pitch_probability[k] if k in pitch_counter else 0 for k in xrange(9, 97)
-        ]
-
-    duration_probability_list = [
-        duration_probability[k] if k in duration_counter else 0
-        for k in get_geometric_progression_of_2(1, 32)
-        ]
-    # print(duration_probability_list)
-
-    return pitch_probability_list, duration_probability_list
+def cal_change_similarity(c1, c2):
+    result = 1.0
+    cor_pair = zip(c1, c2)
+    for i1, i2 in cor_pair:
+        if i1 == i2:
+            continue
+        elif (i1 < 0) == (i2 < 0):
+            result -= 0.1
+        else:
+            result -= 0.3
+    return result if result > 0.0 else 0.0
 
 
-def remove_at(bar, pos):
-    """Remove the NoteContainer after pos in the Bar."""
-    for i in range(len(bar) - pos):
-        bar.remove_last_entry()
-    return bar
+def cal_bar_similarity(bars):
+    lengths, durations, pitchs, octaves, duration_change, pitch_change, \
+    octave_change = [], [], [], [], [], [], []
 
+    for bar in bars:
+        lengths.append(len(bar))
+        ds, ps = zip(*[math.modf(note) for note in bar])
+        durations.append([int(round(d * 100)) for d in ds])
+        pitchs.append([int(p) for p in ps])
+        octaves.append([p // 12 for p in pitchs[-1]])
+        duration_change.append(
+            [n / p for p, n in zip(durations[-1][:-1], durations[-1][1:])])
+        pitch_change.append(
+            [n - p for p, n in zip(pitchs[-1][:-1], pitchs[-1][1:])])
+        octave_change.append(
+            [n - p for p, n in zip(octaves[-1][:-1], octaves[-1][1:])])
 
-def get_names_octaves_durations(bar):
-    """
-    Return a tuple lists: note names, octaves, durations
-    """
-    _, durations, notes = zip(*bar)
-    names, octaves = zip(
-        *((no[0].name, no[0].octave) for no in notes if no is not None))
-    return names, octaves, durations
+    features = zip(lengths, durations, pitchs, octaves, duration_change,
+                   pitch_change, octave_change)
 
-
-
+    distances = {}
+    for p, n in itertools.permutations(features, 2):
+        if p == n:
+            continue
+        index_p, index_n = features.index(p), features.index(n)
+        s_length = cal_length_similarity(p[0], n[0])
+        s_duration = cal_duration_similarity(p[1], n[1])
+        s_pitch = cal_pitch_similarity(p[2], n[2])
+        s_octave = cal_octave_similarity(p[3], n[3])
+        s_duration_change = cal_change_similarity(p[4], n[4])
+        s_pitch_change = cal_change_similarity(p[5], n[5])
+        s_octave_change = cal_change_similarity(p[6], n[6])
+        if index_p in distances.keys():
+            distances[index_p].update({index_n: np.mean([s_length, s_duration,
+                                                         s_pitch, s_octave,
+                                                         s_duration_change,
+                                                         s_pitch_change,
+                                                         s_octave_change])})
+        else:
+            distances[index_p] = {index_n: np.mean([s_length, s_duration,
+                                                    s_pitch, s_octave,
+                                                    s_duration_change,
+                                                    s_pitch_change,
+                                                    s_octave_change])}
+    distances_df = DataFrame(distances)
+    return distances_df

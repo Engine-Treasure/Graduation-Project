@@ -5,6 +5,7 @@
 - grade_interval - 对相邻音符的音程打分
 - grade_duration - 对相邻音符的时值差打分
 - grade_markov - 基于以马尔可夫表表示的作曲经验打分
+- grade_range - 对音符所在区间打分
 - grade_length - 对小节长度打分, 过长的小节, 音符太短促, 刺耳
 - grade_pitch_change - 对小节变化的打分: 是否出现连续相同的音高
 - grade_duration_change - 对小节变化的打分: 是否出现连续相同的时值
@@ -12,17 +13,12 @@
 - grade_duration_diversity - 对小节多样性的打分: 小节包含的时值数
 """
 
-
 from __future__ import division
 
 import math
-
 import numpy as np
-from mingus.core import intervals
-from mingus.containers import Note
 
 import util
-from common import get_names_octaves_durations
 from statistics import markov_table
 
 __author__ = "kissg"
@@ -77,20 +73,20 @@ def grade_interval(pitch_piar):
         return 0.0  # 音程超过 12 度, 严惩
 
 
-def grade_octave(octave_diffrence):
-    """
-    不同八度, 音的差别较大, 八度相差越大, 音变化越剧烈, 刺耳
-    """
-    if not octave_diffrence:  # 同一个八度
-        return 1.0
-    elif abs(octave_diffrence) == 1:  # 差一个八度
-        return 0.8
-    elif abs(octave_diffrence) == 2:
-        return 0.5
-    elif abs(octave_diffrence) == 3:
-        return 0.25
-    else:
-        return 0.0
+# def grade_octave(octave_diffrence):
+#     """
+#     不同八度, 音的差别较大, 八度相差越大, 音变化越剧烈, 刺耳
+#     """
+#     if not octave_diffrence:  # 同一个八度
+#         return 1.0
+#     elif abs(octave_diffrence) == 1:  # 差一个八度
+#         return 0.8
+#     elif abs(octave_diffrence) == 2:
+#         return 0.5
+#     elif abs(octave_diffrence) == 3:
+#         return 0.25
+#     else:
+#         return 0.0
 
 
 def grade_duration(duration_pair):
@@ -121,37 +117,6 @@ def grade_range(pitch):
     return 1.0 if 45 <= pitch <= 67 else 0.0
 
 
-def grade_octave_change(bar):
-    """
-    对整体八度变化的打分
-    """
-    # todo
-    octaves = [int(note[2][0]) // 12 if note[2] is not None else None for note
-               in bar]
-    if util.is_monotone(octaves):
-        if util.is_strict_monotone(octaves):
-            return 0.5
-        else:
-            return 0
-    else:
-        return 1.0
-
-
-def grade_duration_change(bar):
-    """
-    对整体时值变化的打分
-    """
-    # todo
-    durations = [note[1] for note in bar]
-    if util.is_monotone(durations):
-        if util.is_strict_monotone(durations):
-            return 0.5
-        else:
-            return 0
-    else:
-        return 1.0
-
-
 def grade_length(bar):
     """
     小节包含的音符数, 记作其长度
@@ -168,6 +133,37 @@ def grade_length(bar):
         return 0.25
     elif length >= 8:  # 极端情况, 扣分
         return 0.0
+
+
+# def grade_octave_change(bar):
+#     """
+#     对整体八度变化的打分
+#     """
+#     # todo
+#     octaves = [int(note[2][0]) // 12 if note[2] is not None else None for note
+#                in bar]
+#     if util.is_monotone(octaves):
+#         if util.is_strict_monotone(octaves):
+#             return 0.5
+#         else:
+#             return 0
+#     else:
+#         return 1.0
+
+
+# def grade_duration_change(bar):
+#     """
+#     对整体时值变化的打分
+#     """
+#     # todo
+#     durations = [note[1] for note in bar]
+#     if util.is_monotone(durations):
+#         if util.is_strict_monotone(durations):
+#             return 0.5
+#         else:
+#             return 0
+#     else:
+#         return 1.0
 
 
 def grade_change(seq):
@@ -188,9 +184,6 @@ def grade_diversity(seq):
     return 0.0 if len(seq) >= 2 * len(set(seq)) else 1.0
 
 
-
-
-
 def evaluate_bar(bar):
     # todo - kinds of evalute ways
     if len(bar) == 1:
@@ -209,6 +202,8 @@ def evaluate_bar(bar):
     pitch_pairs, pitch_name_pairs, octave_pairs, duration_pairs = map(
         util.get_order_pair, (pitchs, pitch_names, octaves, durations)
     )
+
+    # todo: 长度相关的打分
     g_chord = np.mean([grade_chord(pn) for pn in pitch_name_pairs])
     g_interval = np.mean([grade_interval(p) for p in pitch_pairs])
     g_duration = np.mean([grade_duration(d) for d in duration_pairs])
@@ -222,123 +217,3 @@ def evaluate_bar(bar):
 
     return g_chord, g_interval, g_duration, g_markov, g_range, g_length, g_pitch_change, \
            g_duration_change, g_pitch_diversity, g_duration_diversity
-
-
-def grade_length_similarity(length_pair):
-    """乐句的长度相似度"""
-    distance = abs(length_pair[0] - length_pair[1])
-    return 1.0 - distance * 0.25 if distance <= 4 else -0.25
-
-
-def grade_name_similarity(name_pair):
-    result = 1.0
-    # zip short
-    cor_pair = zip(name_pair[0], name_pair[1])
-    for p1, p2 in cor_pair:
-        result -= 0.25 if p1 != p2 else 0
-    return result if result > -1.0 else -1.0
-
-
-def grade_octave_similarity(octave_pair):
-    result = 1.0
-    cor_pair = zip(octave_pair[0], octave_pair[1])
-    for p1, p2 in cor_pair:
-        if p1 == p2:
-            continue
-        elif abs(p1 - p2) == 1:
-            result -= 0.1
-        elif abs(p1 - p2) == 2:
-            result -= 0.15
-        else:
-            result -= 0.3
-    return result if result > -1.0 else -1.0
-
-
-def grade_duration_similarity(duration_pair):
-    result = 1.0
-    cor_pair = zip(duration_pair[0], duration_pair[1])
-    for p1, p2 in cor_pair:
-        if p1 == p2:
-            continue
-        elif p1 / p2 in (2.0, 0.5):
-            result -= 0.1
-        elif p1 / p2 in (4.0, 0.25):
-            result -= 0.15
-        else:
-            result -= 0.3
-    return result if result > -1.0 else -1.0
-
-
-def grade_nod_change_trend_similarity(nod_change_pair):
-    result = 1.0
-    cor_pair = zip(nod_change_pair[0], nod_change_pair[1])
-    for p1, p2 in cor_pair:
-        if p1 == p2:
-            continue
-        else:
-            result -= 0.3
-    return result if result > -1.0 else -1.0
-
-
-def evaluate_sentence(sentence):
-    array_length = map(len, sentence)
-    array_names, array_octaves, array_durations = zip(
-        *map(get_names_octaves_durations, sentence))
-    array_name_changes = map(get_name_change, array_names)
-    array_octave_change = map(get_octave_change, array_octaves)
-    array_duration_change = map(get_duration_change, array_durations)
-
-    al_combinations, an_combinations, ao_combinations, ad_combinations, \
-    anc_combinations, aoc_combinations, adc_combinations = map(
-        util.get_order_pair, (array_length, array_names,
-                              array_octaves, array_durations,
-                              array_name_changes, array_octave_change,
-                              array_duration_change))
-
-    grade_of_length_similarity = map(grade_length_similarity, al_combinations)
-    grade_of_name_similarity = map(grade_name_similarity, an_combinations)
-    grade_of_octave_similarity = map(grade_octave_similarity, ao_combinations)
-    grade_of_duration_similarity = map(grade_duration_similarity,
-                                       ad_combinations)
-    grade_of_nct_similarity = map(grade_nod_change_trend_similarity,
-                                  anc_combinations)
-    grade_of_oct_similarity = map(grade_nod_change_trend_similarity,
-                                  aoc_combinations)
-    grade_of_dct_similarity = map(grade_nod_change_trend_similarity,
-                                  adc_combinations)
-
-    g_length_similarity, g_name_similarity, g_octave_similarity, \
-    g_duration_similarity, g_nct_similarity, g_oct_similarity, \
-    g_dct_similarity = [sum(x) / len(x) for x in [
-        grade_of_length_similarity, grade_of_name_similarity,
-        grade_of_octave_similarity, grade_of_duration_similarity,
-        grade_of_nct_similarity, grade_of_oct_similarity,
-        grade_of_dct_similarity] if len(x) != 0]
-
-    return g_length_similarity, g_name_similarity, g_octave_similarity, \
-           g_duration_similarity, g_nct_similarity, g_oct_similarity, \
-           g_dct_similarity
-
-
-def get_name_change(array_name):
-    result = []
-    for p, n in zip(array_name[:-1], array_name[1:]):
-        result.append(Note(p).measure(Note(n)))
-    return [r / abs(r) if r != 0 else 0 for r in result]
-    # return result
-
-
-def get_octave_change(array_octave):
-    result = []
-    for p, n in zip(array_octave[:-1], array_octave[1:]):
-        result.append(p - n)
-    return [r / abs(r) if r != 0 else 0 for r in result]
-    # return result
-
-
-def get_duration_change(array_duration):
-    result = []
-    for p, n in zip(array_duration[:-1], array_duration[1:]):
-        result.append(p / n)
-    return [floor(r - 1.0) for r in result]
-    # return result

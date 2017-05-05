@@ -37,7 +37,8 @@ __date__ = "2017-03-10"
 #   时值变化
 #   音高多样性
 #   时值多样性
-creator.create("BarFitness", base.Fitness, weights=(1.0, 0.7, 1.0, 1.0, 0.4, 0.4, 1.0, 1.0, 0.4, 0.7))
+creator.create("BarFitness", base.Fitness,
+               weights=(1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0))
 # pitch.duration
 creator.create("Bar", array.array, typecode="d", fitness=creator.BarFitness)
 
@@ -55,7 +56,8 @@ def get_pitch():
     #     45, 47, 48, 50, 52, 53, 55, 57, 59, 60, 62, 64, 65, 67
     # ])
     pitch = np.random.choice([
-        36, 38, 40, 41, 43, 45, 47, 48, 50, 52, 53, 55, 57, 59, 60, 62, 64, 65, 67, 69
+        36, 38, 40, 41, 43, 45, 47, 48, 50, 52, 53, 55, 57, 59, 60, 62, 64, 65,
+        67, 69
     ])
     return pitch
 
@@ -263,7 +265,7 @@ def evolve_bar_c(pop=None, ngen=100, mu=100, cxpb=0.9, mutpb=0.1, seed=None):
                 CUR = gen
                 CATASTROPHE = 5
 
-            # top_inds = tools.selBest(pop, SURVIVAL_SIZE)  # 更新 top
+                # top_inds = tools.selBest(pop, SURVIVAL_SIZE)  # 更新 top
 
         if CATASTROPHE == 0:
             print(("BOOM " * 10 + "\n") * 10)
@@ -284,34 +286,31 @@ def evolve_bar_c(pop=None, ngen=100, mu=100, cxpb=0.9, mutpb=0.1, seed=None):
 
             CATASTROPHE = 5  # 重置灾变倒计时
 
-    # offspring = toolbox.preselect_bar(pop, len(pop))
-    # offspring = [toolbox.clone(ind) for ind in offspring]
-    # invalid_ind = [ind for ind in offspring if not ind.fitness.valid]
-    # fitnesses = toolbox.map(toolbox.evaluate_bar, invalid_ind)
-    # for ind, fit in zip(invalid_ind, fitnesses):
-    #     ind.fitness.values = fit
-    # pop = toolbox.select_bar(pop + offspring, mu)
+    offspring = toolbox.preselect_bar(pop, len(pop))
+    offspring = [toolbox.clone(ind) for ind in offspring]
+    invalid_ind = [ind for ind in offspring if not ind.fitness.valid]
+    fitnesses = toolbox.map(toolbox.evaluate_bar, invalid_ind)
+    for ind, fit in zip(invalid_ind, fitnesses):
+        ind.fitness.values = fit
+    pop = toolbox.select_bar(pop + offspring, mu)
 
     df = common.cal_bar_similarity(pop)
-    a = random.choice(df.keys())
-    ma = df[a].argmax()
-    nearby = df[a].nlargest(5)
-    print(nearby)
-    cho = nearby.sample(1).keys()[0]
-    print("C", cho)
-    nearby.pop(cho)
-    print(nearby)
+    # a = random.choice(df.keys())
+    # ma = df[a].argmax()
+    # nearby = df[a].nlargest(5)
 
-    composition = [random.choice(pop)]
+    composition = [random.choice(tools.selBest(pop, 10))]
     for i in range(mu):
         idx = pop.index(composition[-1])
         # 从相似度最高的 5 个小节中选择一个, 获取其索引
-        nearest7 = df[idx].nlargest(7)
-        choice = nearest7.sample(1).keys()[0]
+        nearest5 = df[idx].nlargest(5)
+        choice = nearest5.sample(1).keys()[0]
         while pop[choice] in composition[-4:]:
-            nearest7.pop(choice)
-            choice = nearest7.sample(1).keys()[0]
+            nearest5.pop(choice)
+            choice = nearest5.sample(1).keys()[0]
+        print(df[idx][choice])
         composition.append(pop[choice])
+    # composition = pop
 
     return composition, logbook
 

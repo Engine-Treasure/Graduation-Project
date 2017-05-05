@@ -37,7 +37,7 @@ __date__ = "2017-03-10"
 #   时值变化
 #   音高多样性
 #   时值多样性
-creator.create("BarFitness", base.Fitness, weights=(1.0, 0.7, 1.0, 1.0, 0.4, 0.4, 0.4, 0.7, 0.4, 0.7))
+creator.create("BarFitness", base.Fitness, weights=(1.0, 0.7, 1.0, 1.0, 0.4, 0.4, 1.0, 1.0, 0.4, 0.7))
 # pitch.duration
 creator.create("Bar", array.array, typecode="d", fitness=creator.BarFitness)
 
@@ -192,9 +192,9 @@ def evolve_bar_c(pop=None, ngen=100, mu=100, cxpb=0.9, mutpb=0.1, seed=None):
         if mu >= 1000:
             N = mu
         elif mu >= 100:
-            N = mu * 2
+            N = mu * 3
         elif mu > 0:
-            N = mu * 20
+            N = mu * 30
         else:
             raise ValueError
 
@@ -246,13 +246,13 @@ def evolve_bar_c(pop=None, ngen=100, mu=100, cxpb=0.9, mutpb=0.1, seed=None):
 
         # todo: for catastrophe
         # 以适应度函数平均值和标准差为依据进行灾变
-        if util.cal_variance(logbook.select("avg")[-2].tolist(),
-                             logbook.select("avg")[-1].tolist()) < 0.001 and \
-                        util.cal_variance(logbook.select("std")[-2].tolist(),
-                                          logbook.select("std")[
-                                              -1].tolist()) < 0.001:
+        # if util.cal_variance(logbook.select("avg")[-2].tolist(),
+        #                      logbook.select("avg")[-1].tolist()) < 0.001 and \
+        #                 util.cal_variance(logbook.select("std")[-2].tolist(),
+        #                                   logbook.select("std")[
+        #                                       -1].tolist()) < 0.001:
         # 以多样性为依据进行灾变
-        # if len(set([i.tostring() for i in pop])) <= mu:
+        if len(set([i.tostring() for i in pop])) <= mu:
             print("B", CUR, gen)
             print(CATASTROPHE)
             if gen - CUR == 1:
@@ -296,13 +296,22 @@ def evolve_bar_c(pop=None, ngen=100, mu=100, cxpb=0.9, mutpb=0.1, seed=None):
     a = random.choice(df.keys())
     ma = df[a].argmax()
     nearby = df[a].nlargest(5)
+    print(nearby)
+    cho = nearby.sample(1).keys()[0]
+    print("C", cho)
+    nearby.pop(cho)
+    print(nearby)
 
     composition = [random.choice(pop)]
     for i in range(mu):
         idx = pop.index(composition[-1])
         # 从相似度最高的 5 个小节中选择一个, 获取其索引
-        nxtidx = df[idx].nlargest(7).sample(1).keys()[0]
-        composition.append(pop[nxtidx])
+        nearest7 = df[idx].nlargest(7)
+        choice = nearest7.sample(1).keys()[0]
+        while pop[choice] in composition[-4:]:
+            nearest7.pop(choice)
+            choice = nearest7.sample(1).keys()[0]
+        composition.append(pop[choice])
 
     return composition, logbook
 

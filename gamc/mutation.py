@@ -92,13 +92,16 @@ class MutationBar(object):
     @classmethod
     def mut_invert_pitch_bar(cls, ind_bar):
         """
-        :return: 将音高倒置, 围绕中央 C (48)
+        :return: 音程转位
         """
         durations, pitchs = zip(*[math.modf(note) for note in ind_bar])
-        pitchs = [96 - p for p in pitchs]
+        octaves, names = zip(*[divmod(int(pitch), 12) for pitch in pitchs])
+        names = [12 - n for n in names]  # 音名的转位
+
         # Notice - ind_bar is a instance of array.array
-        for i, pd in enumerate(zip(pitchs, durations)):
-            ind_bar[i] = pd[0] + pd[1]
+        for i, pd in enumerate(zip(octaves, names, durations)):
+            ind_bar[i] = pd[0] * 12 + pd[1] + pd[2]
+
         return ind_bar
 
     @classmethod

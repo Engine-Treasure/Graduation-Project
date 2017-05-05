@@ -7,6 +7,8 @@ import math
 import numpy as np
 from pandas import DataFrame
 
+from evaluate import grade_chord, grade_interval, grade_duration, grade_markov
+
 __author__ = "kissg"
 __date__ = "2017-04-11"
 
@@ -19,7 +21,8 @@ PITCH_PROBABILITY = None
 # s_duration_change - 时值变化相似性
 # s_pitch_change - 音高变化相似性
 # s_octave_change - 八度变化相似性
-W = (1.0, 0.7, 0.8, 0.2, 0.7, 0.8, 0.2)
+# W = (1.0, 0.7, 0.8, 0.2, 0.7, 0.8, 0.2)
+W = (1.0, 0.7, 0.8, 0.2, 0.7, 0.8, 0.2, 1.0)
 
 
 def cal_similarity_length(l1, l2):
@@ -92,6 +95,12 @@ def cal_similarity_change(c1, c2):
     return result
 
 
+
+
+
+
+
+
 def cal_bar_similarity(bars):
     lengths, durations, pitchs, octaves, duration_change, pitch_change, \
         octave_change = [], [], [], [], [], [], []
@@ -127,18 +136,24 @@ def cal_bar_similarity(bars):
         s_pitch_change = cal_similarity_change(p[5], n[5])
         s_octave_change = cal_similarity_change(p[6], n[6])
 
+        c_chord = grade_chord([p[2][-1] % 12, n[2][0] % 12])
+        c_duration = grade_duration([p[1][-1], n[1][0]])
+        c_pitch = grade_interval([p[2][-1], n[2][0]])
+        c_markov = grade_markov([p[2][-1], n[2][0]])
+        s_convergence = np.mean([c_chord, c_pitch, c_duration, c_markov])
+
         if index_p in distances.keys():
             distances[index_p].update({
                 index_n: np.average([
                     s_length, s_duration, s_pitch, s_octave, s_duration_change,
-                    s_pitch_change, s_octave_change
+                    s_pitch_change, s_octave_change, s_convergence
                 ], weights=W)
             })
         else:
             distances[index_p] = {
                 index_n: np.average([
                     s_length, s_duration, s_pitch, s_octave, s_duration_change,
-                    s_pitch_change, s_octave_change
+                    s_pitch_change, s_octave_change, s_convergence
                 ], weights=W)
             }
     distances_df = DataFrame(distances)

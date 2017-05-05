@@ -241,13 +241,14 @@ def grade_diversity(seq):
     因此, 取两倍关系
     :return: 
     """
-    return 0.0 if len(set(seq)) * 2 >= len(seq) else 1.0
+    print(seq)
+    return 1.0 if len(set(seq)) * 2 >= len(seq) else 0.0
 
 
 def evaluate_bar(bar):
     # todo - kinds of evalute ways
     if len(bar) == 1:
-        return 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0
+        return 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0
 
     try:
         durations, pitchs = zip(*[math.modf(note) for note in bar])
@@ -269,12 +270,15 @@ def evaluate_bar(bar):
     g_markov = grade_markov(pitchs)
     g_in = grade_in(pitchs)
     g_length = grade_length(bar)
-    g_pitch_change = grade_change(pitchs)
-    g_duration_change = grade_change(durations)
-    g_pitch_diversity = grade_diversity(pitchs)
-    g_duration_diversity = grade_diversity(durations)
+    g_change = grade_change(bar)
+    g_diversity = grade_diversity(bar)
+    # g_pitch_change = grade_change(pitchs)
+    # g_duration_change = grade_change(durations)
+    # g_pitch_diversity = grade_diversity(pitchs)
+    # g_duration_diversity = grade_diversity(durations)
+    # if 0.0 in (g_chord, g_interval, g_duration, g_markov, g_in, g_length, g_change, g_diversity):
+    #     print("A", g_chord, g_interval, g_duration, g_markov, g_in, g_length, g_change, g_diversity)
+    #     return 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0
 
-    print g_chord, g_interval, g_duration, g_markov, g_in, g_length, g_pitch_change, \
-           g_duration_change, g_pitch_diversity, g_duration_diversity
-    return g_chord, g_interval, g_duration, g_markov, g_in, g_length, g_pitch_change, \
-           g_duration_change, g_pitch_diversity, g_duration_diversity
+    print("B", g_chord, g_interval, g_duration, g_markov, g_in, g_length, g_change, g_diversity)
+    return g_chord, g_interval, g_duration, g_markov, g_in, g_length, g_change, g_diversity

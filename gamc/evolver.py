@@ -37,8 +37,10 @@ __date__ = "2017-03-10"
 #   时值变化
 #   音高多样性
 #   时值多样性
+# creator.create("BarFitness", base.Fitness,
+#                weights=(1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0))
 creator.create("BarFitness", base.Fitness,
-               weights=(1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0))
+               weights=(1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0))
 # pitch.duration
 creator.create("Bar", array.array, typecode="d", fitness=creator.BarFitness)
 

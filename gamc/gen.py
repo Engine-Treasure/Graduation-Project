@@ -3,6 +3,7 @@ from __future__ import division
 
 import random
 import math
+from copy import deepcopy
 
 import numpy as np
 from deap import creator

@@ -9,6 +9,7 @@ __date__ = "2017-03-20"
 
 def get_geometric_progression_of_2(start, stop):
     """
+    二的幂列表
     The usage is just like range(start, stop),
     Because my range won't be large, I just use `range()` and `filter()` ,
     instead of the the blow one: multiply and power.
@@ -21,10 +22,6 @@ def get_geometric_progression_of_2(start, stop):
 
 def get_geometric_progression_with_length(start, a, length):
     return [start * a ** (n - 1) for n in range(1, length + 1)]
-
-
-def get_order_pair(seq_obj):
-    return [(p, n) for p, n in zip(seq_obj[:-1], seq_obj[1:])]
 
 
 def is_monotone(L):

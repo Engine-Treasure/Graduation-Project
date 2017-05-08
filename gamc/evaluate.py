@@ -16,9 +16,7 @@
 from __future__ import division
 
 import math
-import numpy as np
 
-import util
 from statistics import markov_table
 
 __author__ = "kissg"
@@ -241,7 +239,6 @@ def grade_diversity(seq):
     因此, 取两倍关系
     :return: 
     """
-    print(seq)
     return 1.0 if len(set(seq)) * 2 >= len(seq) else 0.0
 
 
@@ -253,7 +250,6 @@ def evaluate_bar(bar):
     try:
         durations, pitchs = zip(*[math.modf(note) for note in bar])
     except:
-        print(bar)
         raise
 
     pitchs = [int(pitch) for pitch in pitchs]
@@ -276,9 +272,9 @@ def evaluate_bar(bar):
     # g_duration_change = grade_change(durations)
     # g_pitch_diversity = grade_diversity(pitchs)
     # g_duration_diversity = grade_diversity(durations)
-    # if 0.0 in (g_chord, g_interval, g_duration, g_markov, g_in, g_length, g_change, g_diversity):
-    #     print("A", g_chord, g_interval, g_duration, g_markov, g_in, g_length, g_change, g_diversity)
-    #     return 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0
+    if (g_chord, g_interval, g_duration, g_markov, g_in, g_length, g_change, g_diversity).count(0.0) > 1:
+        # print("A", g_chord, g_interval, g_duration, g_markov, g_in, g_length, g_change, g_diversity)
+        return 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0
 
-    print("B", g_chord, g_interval, g_duration, g_markov, g_in, g_length, g_change, g_diversity)
+    # print("B", g_chord, g_interval, g_duration, g_markov, g_in, g_length, g_change, g_diversity)
     return g_chord, g_interval, g_duration, g_markov, g_in, g_length, g_change, g_diversity

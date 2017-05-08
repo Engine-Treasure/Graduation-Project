@@ -12,8 +12,6 @@ from evaluate import grade_chord, grade_interval, grade_duration, grade_markov
 __author__ = "kissg"
 __date__ = "2017-04-11"
 
-PITCH_PROBABILITY = None
-
 # s_length - 长度相似度
 # s_duration - 时值相似性
 # s_pitch - 音高相似性
@@ -93,12 +91,6 @@ def cal_similarity_change(c1, c2):
         else:
             result -= deduction
     return result
-
-
-
-
-
-
 
 
 def cal_bar_similarity(bars):

@@ -1,26 +1,27 @@
 # -*- coding: utf-8 -*-
 
+from __future__ import division
+
 import json
+import math
 import os
+import random
+import time
 import webbrowser
 
 import click
 import fire
-import math
 import matplotlib.pyplot as plt
 import mingus.extra.lilypond as lp
 import numpy as np
-import time
-from mingus.containers.bar import Bar
 from mingus.containers.note import NoteFormatError, Note
 from mingus.containers.track import Track
 from mingus.midi import fluidsynth, midi_file_out
 
-from gamc import evolver, txtimg, abcparse, gen
+from gamc import evolver, txtimg, abcparse, gen, cal
 
 __author__ = "kissg"
 __date__ = "2017-04-13"
-
 
 name2int = {
     "C": 0, "C#": 1, "D": 2, "D#": 3, "E": 4, "F": 5,
@@ -28,52 +29,41 @@ name2int = {
 }
 
 
-def play(func):
-    """decorator - for playing music after evolving"""
-
-    def wrapper(*args, **kwargs):
-        bars, log = func(*args, **kwargs)
-        track = Track()
-
-        print("Listening ...")
-        try:
-            for bar in bars:
-                track.add_bar(bar)
-        except KeyboardInterrupt:
-            raise
-
-        lp.to_pdf(lp.from_Track(track), "out.pdf")
-        webbrowser.open("out.pdf.pdf")
-        midi_file_out.write_Track("out.mid", track)
-
-        if log:
-
-            fig = plt.figure()
-
-            plt.grid(True, 'major', 'y', ls='--', lw=.5, c='k', alpha=.3)
-
-            headers = ["avg", "std", "min", "max"]
-            for rank, header in enumerate(headers):
-                plt.scatter(np.arange(len(log.select(header))),
-                            np.sum(np.array(log.select(header)) / 8, axis=1))
-
-            fig.savefig("out.png")
-            webbrowser.open_new("out.png")
-
-        fluidsynth.play_Track(track)
-
-    return wrapper
-
-
-def play_back(bars):
-    track = Track()
-    for bar in bars:
-        track.add_bar(bar)
-
-    lp.to_pdf(lp.from_Track(track), "tmp.pdf")
-    midi_file_out.write_Track("tmp.mid", track)
-    webbrowser.open("tmp.pdf.pdf")
-    fluidsynth.play_Track(track)
+# def play(func):
+#     """decorator - for playing music after evolving"""
+#
+#     def wrapper(*args, **kwargs):
+#         bars, log = func(*args, **kwargs)
+#         track = Track()
+#
+#         print("Listening ...")
+#         try:
+#             for bar in bars:
+#                 track.add_bar(bar)
+#         except KeyboardInterrupt:
+#             raise
+#
+#         lp.to_pdf(lp.from_Track(track), "out.pdf")
+#         webbrowser.open("out.pdf.pdf")
+#         midi_file_out.write_Track("out.mid", track)
+#
+#         if log:
+#
+#             fig = plt.figure()
+#
+#             plt.grid(True, 'major', 'y', ls='--', lw=.5, c='k', alpha=.3)
+#
+#             headers = ["avg", "std", "min", "max"]
+#             for rank, header in enumerate(headers):
+#                 plt.scatter(np.arange(len(log.select(header))),
+#                             np.sum(np.array(log.select(header)) / 8, axis=1))
+#
+#             fig.savefig("out.png")
+#             webbrowser.open_new("out.png")
+#
+#         fluidsynth.play_Track(track)
+#
+#     return wrapper
 
 
 def time2duration(t, standard_beat=2):
@@ -102,6 +92,44 @@ def time2duration(t, standard_beat=2):
         return 1.0 if result < 1 else 32.0
 
 
+def compose(pop, mu, selected=None):
+    df = cal.cal_bar_similarity(pop)
+
+    composition = [selected if selected else random.choice(pop)]
+    for i in range(mu):
+        idx = pop.index(composition[-1])
+        # 从相似度最高的 5 个小节中选择一个, 获取其索引
+        nearest5 = df[idx].nlargest(5)
+        choice = nearest5.sample(1).keys()[0]
+        while pop[choice] in composition[-4:]:
+            nearest5.pop(choice)
+            choice = nearest5.sample(1).keys()[0]
+        composition.append(pop[choice])
+        # composition = pop
+
+    return composition[1:]
+
+
+def after_composing(track, fn="out"):
+    lp.to_pdf(lp.from_Track(track), fn if fn.endswith(".pdf") else fn + ".pdf")
+    midi_file_out.write_Track(fn if fn.endswith(".mid") else fn + ".mid", track)
+
+
+def visualize_log(log, fn="out"):
+    fig = plt.figure()
+
+    plt.grid(True, 'major', 'y', ls='--', lw=0.5, c='k', alpha=0.3)
+
+    headers = ["avg", "std", "min", "max"]
+    for header in headers:
+        plt.scatter(
+            np.arange(len(log.select(header))),
+            np.mean(np.array(log.select(header)), axis=1)
+        )
+
+    fig.savefig(fn if fn.endswith(".png") else fn + ".png")
+
+
 class Controller(object):
     def __init__(self, soundfont="JR_elepiano",
                  km_file="./gamc/statics/keymap.json", octave=4, meter="4/4",
@@ -112,169 +140,90 @@ class Controller(object):
                                ".sf2") else soundfont + ".sf2")
         fluidsynth.init(sf2=sf2, driver="alsa")
 
-        # set key map
+        # set key map, for interactive playing
         with open(km_file) as f:
             self.KEYMAP = json.load(f)
 
-        self.OCTAVE = octave  # init octave
+        self.OCTAVE = octave  # initial octave
 
         basic_beat = int(meter.split("/")[-1])  # Get baisc beat from meter
         self.STANDARD_DURATION = basic_beat * 60 / bpm
 
     def play_abc(self, abc_file):
         key, meter, notes = abcparse.parse_abc(abc_file)
-        names, durations = zip(*
-                               [(note[0].rstrip("*").upper(), int(note[1])) for
-                                note in notes])
-        names = [[name[:-1], int(name[-1])] for name in names]
 
         track = Track()
-        for name, duration in zip(names, durations):
-            print(name, duration)
-            track.add_notes(Note(*name), duration=duration)
-
-        lp.to_pdf(lp.from_Track(track), "tmp.pdf")
-        midi_file_out.write_Track("tmp.mid", track)
-        webbrowser.open_new("tmp.pdf.pdf")
+        for note in notes:
+            track.add_notes(Note(*note[0]), duration=note[1])
 
         fluidsynth.play_Track(track)
 
-    def generate(self, ngen=100, mu=100, cxpb=0.9, mutpb=0.1):
+    def generate(self, ngen=100, mu=100, cxpb=0.9):
 
-        pop, log = evolver.evolve_bar_c(ngen=ngen, mu=mu, cxpb=cxpb,
-                                        mutpb=mutpb)
-        print(len(set([i.tostring() for i in pop])))
+        pop, log = evolver.evolve_bar_c(ngen=ngen, mu=mu, cxpb=cxpb)
+        print(len(set([i.tostring() for i in pop])) / mu)  # 查看最终小节多样性
+
+        pop = compose(pop, mu)  # 以进化得到的小节谱曲
+
+        durations, pitchs = zip(*[math.modf(note) for ind in pop for note in ind])
+        notes = [Note().from_int(int(pitch)) for pitch in pitchs]
+        durations = [int(round(duration * 100)) for duration in durations]
 
         track = Track()
-        for ind in pop:
-            durations, pitchs = zip(*[math.modf(note) for note in ind])
-            notes = [Note().from_int(int(pitch)) for pitch in pitchs]
-            durations = [int(round(duration * 100)) for duration in durations]
-            bar = Bar()
-            for note, duration in zip(notes, durations):
-                bar.place_notes(note, duration)
-            track.add_bar(bar)
+        for note, duration in zip(notes, durations):
+            track.add_notes(note, duration)
 
-        lp.to_pdf(lp.from_Track(track), "tmp.pdf")
-        midi_file_out.write_Track("tmp.mid", track)
-        webbrowser.open("tmp.pdf.pdf")
-        fig = plt.figure()
+        after_composing(track, fn="generate")
 
-        plt.grid(True, 'major', 'y', ls='--', lw=.5, c='k', alpha=.3)
+        visualize_log(log, fn="generate")
 
-        headers = ["avg", "std", "min", "max"]
-        for rank, header in enumerate(headers):
-            plt.scatter(np.arange(len(log.select(header))),
-                        np.sum(np.array(log.select(header)) / 8, axis=1))
-
-        fig.savefig("out.png")
-        webbrowser.open_new("out.png")
         fluidsynth.play_Track(track)
 
-        # bars = [Bar(Note().from_int(int(pitch)), int(round(duration * 100))) for pitch, duration in zip(pitchs, durations)]
+    def imitate(self, abc_file, ngen=100, cxpb=0.9):
+        key, meter, notes = abcparse.parse_abc(abc_file)
 
-        print(log)
+        pitchs, durations = zip(*[(note[0][1] * 12 + gen.name2int[note[0][0]], note[1]) for note in notes])
+        # 为了构造的便利, 第二个元素是时值的倒数
+        prepare_pop = [
+            (p + d / 100.0, 1.0 / d) for p, d in zip(pitchs, durations)
+        ]
 
-    def imitate(self, abc_file, ngen=100, cxpb=0.9, mutpb=0.1):
-        pop, log = evolver.evolve_from_abc(abc_file, ngen=ngen,
-                                           cxpb=cxpb,
-                                           mutpb=mutpb)
+        pop = gen.init_pop_from_seq(prepare_pop)
+        pop, log = evolver.evolve_bar_nc(pop, ngen=ngen, mu=len(pop), cxpb=cxpb)
+        print(len(set([i.tostring() for i in pop])) / len(pop))  # 查看最终小节多样性
+
+        durations, pitchs = zip(*[math.modf(note) for ind in pop for note in ind])
+        notes = [Note().from_int(int(pitch)) for pitch in pitchs]
+        durations = [int(round(duration * 100)) for duration in durations]
+
         track = Track()
-        for ind in pop:
-            durations, pitchs = zip(*[math.modf(note) for note in ind])
-            notes = [Note().from_int(int(pitch)) for pitch in pitchs]
-            durations = [int(round(duration * 100)) for duration in durations]
-            bar = Bar()
-            for note, duration in zip(notes, durations):
-                bar.place_notes(note, duration)
-            track.add_bar(bar)
+        for note, duration in zip(notes, durations):
+            track.add_notes(note, duration)
 
-        lp.to_pdf(lp.from_Track(track), "tmp.pdf")
-        midi_file_out.write_Track("tmp.mid", track)
-        webbrowser.open("tmp.pdf.pdf")
-        fig = plt.figure()
+        after_composing(track, fn="imitate")
 
-        plt.grid(True, 'major', 'y', ls='--', lw=.5, c='k', alpha=.3)
+        visualize_log(log, fn="imitate")
 
-        headers = ["avg", "std", "min", "max"]
-        for rank, header in enumerate(headers):
-            plt.scatter(np.arange(len(log.select(header))),
-                        np.sum(np.array(log.select(header)) / 8, axis=1))
-
-        fig.savefig("tmp.png")
-        webbrowser.open_new("tmp.png")
         fluidsynth.play_Track(track)
 
-        # bars = [Bar(Note().from_int(int(pitch)), int(round(duration * 100))) for pitch, duration in zip(pitchs, durations)]
-
-        print(log)
-
-    def interact(self, ngen=100, mu=100, cxpb=0.9, mutpb=0.1):
+    def interact(self, ngen=100, cxpb=0.9):
         notes = []
         durations = []
 
         t = 0
         while True:
             key = click.getchar()
-            if key == "\x1b":
+            if key == "\x1b":  # Escape 键, 退出程序
                 break
-            elif key == "\r":
-                durations.append(
-                    time2duration(time.time() - t, self.STANDARD_DURATION))
-                prepare_pop = [(note.octave * 12 + name2int[note.name] + round(duration) / 100.0, 1.0 / duration) for note, duration in
-                       zip(notes, durations)]
-                pop = gen.init_pop_from_seq(prepare_pop)
-                # print(pop)
-                # pop = array.array("d", pop)
-
-                try:
-                    print("POP", pop)
-                    pop, log = evolver.evolve_bar_nc(pop,
-                                                      ngen=ngen, mu=mu,
-                                                      cxpb=cxpb,
-                                                      mutpb=mutpb)
-                    track = Track()
-                    for ind in pop:
-                        durations, pitchs = zip(*[math.modf(note) for note in ind])
-                        notes = [Note().from_int(int(pitch)) if pitch < 1000 else None for pitch in pitchs]
-                        durations = [int(round(duration * 100)) for duration in durations]
-                        bar = Bar()
-                        for note, duration in zip(notes, durations):
-                            bar.place_notes(note, duration)
-                        track.add_bar(bar)
-
-                    lp.to_pdf(lp.from_Track(track), "tmp.pdf")
-                    midi_file_out.write_Track("tmp.mid", track)
-                    webbrowser.open("tmp.pdf.pdf")
-                    fig = plt.figure()
-
-                    plt.grid(True, 'major', 'y', ls='--', lw=.5, c='k', alpha=.3)
-
-                    headers = ["avg", "std", "min", "max"]
-                    for rank, header in enumerate(headers):
-                        plt.scatter(np.arange(len(log.select(header))),
-                                    np.sum(np.array(log.select(header)) / 8, axis=1))
-
-                    fig.savefig("out.png")
-                    webbrowser.open_new("out.png")
-                    fluidsynth.play_Track(track)
-
-                except KeyboardInterrupt:
-                    pass
-
-                finally:  # reset notes, durations and t
-                    del notes[:]
-                    del durations[:]
-                    t = 0
             elif key in self.KEYMAP:
-                v = self.KEYMAP.get(key)
+                v = self.KEYMAP[key]
                 if v in ("OD", "OU"):  # octave down and octave up
                     if v == "OU":
-                        self.OCTAVE = self.OCTAVE - 1 \
+                        self.OCTAVE = self.OCTAVE + 1 \
                             if self.OCTAVE < 8 else self.OCTAVE
                         print(txtimg.txtimg[self.OCTAVE])
                     else:
-                        self.OCTAVE = self.OCTAVE + 1 \
+                        self.OCTAVE = self.OCTAVE - 1 \
                             if self.OCTAVE > 0 else self.OCTAVE
                         print(txtimg.txtimg[self.OCTAVE])
                 elif v in (0, 1, 2, 3, 4, 5, 6, 7, 8):
@@ -284,7 +233,7 @@ class Controller(object):
                            "A#", "B"):
                     # v is a unicode instance
                     notes.append(Note("-".join(map(str, [v, self.OCTAVE]))))
-                    if t:
+                    if t:  # t 不为 0, 表明已经键入了音符, 计算时值
                         durations.append(time2duration(time.time() - t,
                                                        self.STANDARD_DURATION))
                         t = time.time()
@@ -296,6 +245,50 @@ class Controller(object):
                         pass
                 else:
                     raise KeyError
+            elif key == "\r":  # 回车键表示演奏完毕, 将进行遗传进化
+                durations.append(  # 计算最后一个音符的时值
+                    time2duration(time.time() - t, self.STANDARD_DURATION)
+                )
+                # 同 abc
+                prepare_pop = [(
+                    note.octave * 12 + name2int[note.name] + round(
+                    duration) / 100.0, 1.0 / duration) for note, duration in
+                               zip(notes, durations)]
+                improvisation = gen.init_pop_from_seq(prepare_pop)
+
+                try:
+                    pop, log = evolver.evolve_bar_nc(
+                        improvisation, ngen=ngen, mu=len(improvisation), cxpb=cxpb
+                    )
+                    print(len(set([i.tostring() for i in pop])) / len(pop))
+                    pop.append(improvisation[-1])
+                    pop = compose(pop, mu=len(pop), selected=improvisation[-1])
+
+                    durations, pitchs = zip(*[
+                        math.modf(note) for ind in improvisation + pop for note in ind
+                    ])
+                    notes = [Note().from_int(int(pitch)) for pitch in pitchs]
+                    durations = [
+                        int(round(duration * 100)) for duration in durations
+                    ]
+
+                    track = Track()
+                    for note, duration in zip(notes, durations):
+                        track.add_notes(note, duration)
+
+                    after_composing(track, fn="interact")
+
+                    visualize_log(log, fn="interact")
+
+                    fluidsynth.play_Track(track)
+
+                except KeyboardInterrupt:
+                    pass
+
+                finally:  # reset notes, durations and t
+                    del notes[:]
+                    del durations[:]
+                    t = 0
             else:
                 pass
 

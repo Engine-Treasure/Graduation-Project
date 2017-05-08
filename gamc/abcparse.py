@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+# -*- coding:utf-8 -*-
 
 """
 
@@ -315,7 +316,11 @@ def parse_abc(fn):
             if do_repeat:
                 song = song + second_ver
 
-            return key, meter, song
+            names, durations = zip(*[  # 音名与时值
+                (note[0].rstrip("*").upper(), int(note[1])) for note in song
+            ])
+            names = [[name[:-1], int(name[-1])] for name in names]
+            return key, meter, zip(names, durations)
     except:
         pass  # There may be some abc files that can not be parsed.
     finally:

@@ -214,7 +214,8 @@ def evolve_bar_c(pop=None, ngen=100, mu=100, cxpb=0.9, mutpb=0.1, seed=None):
     pop = toolbox.select_bar(pop, len(pop))
 
     # todo: for catastrophe
-    top_inds = tools.selBest(pop, SURVIVAL_SIZE)  # top  individuals to survive
+    # top_inds = tools.selBest(pop, SURVIVAL_SIZE)  # top  individuals to survive
+    top_inds = tools.selBest(pop, SURVIVAL_SIZE)[1:]  # top  individuals to survive
 
     record = stats.compile(pop)
     logbook.record(gen=0, evals=len(invalid_ind), **record)
@@ -271,7 +272,7 @@ def evolve_bar_c(pop=None, ngen=100, mu=100, cxpb=0.9, mutpb=0.1, seed=None):
 
         if CATASTROPHE == 0:
             print(("BOOM " * 10 + "\n") * 10)
-            pop = toolbox.pop_bar(n=(N - SURVIVAL_SIZE))
+            pop = toolbox.pop_bar(n=(N - SURVIVAL_SIZE + 1))
             pop.extend(deepcopy(top_inds))  # 灾变的新生个体
 
             invalid_ind = [ind for ind in pop if not ind.fitness.valid]
@@ -284,7 +285,7 @@ def evolve_bar_c(pop=None, ngen=100, mu=100, cxpb=0.9, mutpb=0.1, seed=None):
             SURVIVAL_SIZE = int(mu * gen / ngen)  # 环境容纳量增大
             if SURVIVAL_SIZE == mu:
                 return pop, logbook
-            top_inds = tools.selBest(pop, SURVIVAL_SIZE)  # 更新 top
+            top_inds = tools.selBest(pop, SURVIVAL_SIZE)[1:]  # 更新 top
 
             CATASTROPHE = 5  # 重置灾变倒计时
 

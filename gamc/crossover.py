@@ -22,17 +22,20 @@ def cx_one_point_bar(ind_1, ind_2):
     time_2 = [1 / round(duration * 100) for duration in durations_2]
 
     # cumulative time
-    ctime_1 = [sum(time_1[:i+1]) for i, t in enumerate(time_1)]
-    ctime_2 = [sum(time_2[:i+1]) for i, t in enumerate(time_2)]
+    ctime_1 = [sum(time_1[:i + 1]) for i, t in enumerate(time_1)]
+    ctime_2 = [sum(time_2[:i + 1]) for i, t in enumerate(time_2)]
 
     atime = [t for t in ctime_1 if t in ctime_2]
 
-    if not atime:  # 没有重合的部分
+    if not atime or atime == [1.0]:  # 没有重合的部分
         return ind_1, ind_2
     else:
         chosen_pos = random.choice(atime)
-        pos_1, pos_2 = ctime_1.index(chosen_pos), ctime_2.index(chosen_pos)
-        tmp_1, tmp_2 = ind_1[:pos_1] + ind_2[pos_2:], ind_2[:pos_2] + ind_1[pos_1:]
+        # 相同索引所在位置的元素应保留在原序列中
+        pos_1, pos_2 = ctime_1.index(chosen_pos) + 1, \
+            ctime_2.index(chosen_pos) + 1
+        tmp_1, tmp_2 = ind_1[:pos_1] + ind_2[pos_2:], \
+            ind_2[:pos_2] + ind_1[pos_1:]
 
         del ind_1[:]
         for i, ele in enumerate(tmp_1):

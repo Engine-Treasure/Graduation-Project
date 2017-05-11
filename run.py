@@ -262,6 +262,7 @@ class Controller(object):
                     )
                     print(len(set([i.tostring() for i in pop])) / len(pop))
                     pop.append(improvisation[-1])
+                    # 输入交互式的尾小节, 寻找最匹配的起始小节
                     pop = compose(pop, mu=len(pop), selected=improvisation[-1])
 
                     durations, pitchs = zip(*[

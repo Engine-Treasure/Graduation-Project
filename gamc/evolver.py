@@ -3,9 +3,11 @@
 from __future__ import division
 
 import random
+import math
 from copy import deepcopy
 
 import array
+import click
 import numpy as np
 from deap import base
 from deap import creator
@@ -17,6 +19,9 @@ import fortin2013
 import gen
 import mutation
 from txtimg import boom
+from mingus.midi import fluidsynth
+from mingus.containers.note import Note
+from mingus.containers.bar import Bar
 
 __author__ = "kissg"
 __date__ = "2017-03-10"
@@ -37,7 +42,8 @@ __date__ = "2017-03-10"
 creator.create("BarFitness", base.Fitness,
                weights=(1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0))
 # pitch.duration
-creator.create("Bar", array.array, typecode="d", fitness=creator.BarFitness)
+creator.create("Bar", array.array, typecode="d", fitness=creator.BarFitness,
+               by_human=0)
 
 toolbox = base.Toolbox()
 
@@ -98,7 +104,6 @@ def evolve_bar_nc(pop=None, ngen=100, mu=100, cxpb=0.9, seed=None):
 
         for ind1, ind2 in zip(offspring[::2], offspring[1::2]):
             if random.random() <= cxpb:
-                a = deepcopy(ind1)
                 toolbox.mate_bar(ind1, ind2)
 
             toolbox.mutate_bar(ind1)
@@ -197,6 +202,27 @@ def evolve_bar_c(pop=None, ngen=100, mu=100, cxpb=0.9, seed=None):
         # Select the next generation population
         # pop = toolbox.select_bar(pop + offspring, mu)
         pop = toolbox.select_bar(pop + offspring, len(pop))
+
+        for b in tools.selRandom(pop, 10):
+            durations, pitchs = zip(*[math.modf(note) for note in b])
+            notes = [
+                None if pitch == 1000 else Note().from_int(int(pitch))
+                for pitch in pitchs
+            ]
+            durations = [
+                int(round(duration * 100)) for duration in durations
+            ]
+            bar = Bar()
+            for note, duration in zip(notes, durations):
+                bar.place_notes(note, duration)
+            while 1:
+                fluidsynth.play_Bar(bar)
+                key = click.getchar()
+                if key == u"g":
+                    b.by_human = 1
+                    break
+                elif key == u"b":
+                    break
 
         record = stats.compile(pop)
         logbook.record(gen=gen, evals=len(invalid_ind), **record)

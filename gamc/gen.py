@@ -61,19 +61,17 @@ def init_pop_from_seq(seq):
     ls = []
     rest = 1.0
     bar = creator.Bar()
-    for i in seq:
+    for i in seq:  # i[0] is pitch.duration, i[1] is 1 / duration
         if rest - i[1] > 0.0:
             bar.append(i[0])
             rest -= i[1]
         elif rest - i[1] == 0.0:
             bar.append(i[0])
             ls.append(deepcopy(bar))
-            bar = creator.Bar()
+            del bar[:]
             rest = 1.0
         else:
-            last_note = bar.pop()
-            rest = 1.0 - sum(1.0 / math.modf(note)[0] for note in bar)
-            bar.append(int(last_note) + 1.0 / rest / 100)
+            # rest - i[1] < 0.0, 当前音符的时值已经超过了小节剩余的时值, 要另起一个小节
             ls.append(deepcopy(bar))
             bar = creator.Bar()
             bar.append(i[0])

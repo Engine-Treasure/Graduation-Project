@@ -93,8 +93,9 @@ def time2duration(t, standard_beat=2):
 
 
 def compose(pop, mu, selected=None):
-    df = cal.cal_bar_similarity(pop)
+    df = cal.cal_bar_similarity(pop)  # 计算各小节间的两两匹配程度
 
+    # 若给定 selected, 则其为乐曲的第一个小节, 否则随机选择
     composition = [selected if selected else random.choice(pop)]
     for i in range(mu):
         idx = pop.index(composition[-1])
@@ -107,7 +108,7 @@ def compose(pop, mu, selected=None):
         composition.append(pop[choice])
         # composition = pop
 
-    return composition[1:]
+    return composition
 
 
 def after_composing(track, fn="out"):
@@ -165,7 +166,8 @@ class Controller(object):
 
         pop = compose(pop, mu)  # 以进化得到的小节谱曲
 
-        durations, pitchs = zip(*[math.modf(note) for ind in pop for note in ind])
+        durations, pitchs = zip(
+            *[math.modf(note) for ind in pop for note in ind])
         notes = [Note().from_int(int(pitch)) for pitch in pitchs]
         durations = [int(round(duration * 100)) for duration in durations]
 
@@ -182,7 +184,9 @@ class Controller(object):
     def imitate(self, abc_file, ngen=100, cxpb=0.9):
         key, meter, notes = abcparse.parse_abc(abc_file)
 
-        pitchs, durations = zip(*[(note[0][1] * 12 + gen.name2int[note[0][0]], note[1]) for note in notes])
+        pitchs, durations = zip(
+            *[(note[0][1] * 12 + gen.name2int[note[0][0]], note[1]) for note in
+              notes])
         # 为了构造的便利, 第二个元素是时值的倒数
         prepare_pop = [
             (p + d / 100.0, 1.0 / d) for p, d in zip(pitchs, durations)
@@ -192,7 +196,8 @@ class Controller(object):
         pop, log = evolver.evolve_bar_nc(pop, ngen=ngen, mu=len(pop), cxpb=cxpb)
         print(len(set([i.tostring() for i in pop])) / len(pop))  # 查看最终小节多样性
 
-        durations, pitchs = zip(*[math.modf(note) for ind in pop for note in ind])
+        durations, pitchs = zip(
+            *[math.modf(note) for ind in pop for note in ind])
         notes = [Note().from_int(int(pitch)) for pitch in pitchs]
         durations = [int(round(duration * 100)) for duration in durations]
 
@@ -250,15 +255,16 @@ class Controller(object):
                     time2duration(time.time() - t, self.STANDARD_DURATION)
                 )
                 # 同 abc
-                prepare_pop = [(
+                prepared = [(
                     note.octave * 12 + name2int[note.name] + round(
-                    duration) / 100.0, 1.0 / duration) for note, duration in
-                               zip(notes, durations)]
-                improvisation = gen.init_pop_from_seq(prepare_pop)
+                        duration) / 100.0, 1.0 / duration) for note, duration in
+                    zip(notes, durations)]
+                improvisation = gen.init_pop_from_seq(prepared)
 
                 try:
                     pop, log = evolver.evolve_bar_nc(
-                        improvisation, ngen=ngen, mu=len(improvisation), cxpb=cxpb
+                        improvisation, ngen=ngen, mu=len(improvisation),
+                        cxpb=cxpb
                     )
                     print(len(set([i.tostring() for i in pop])) / len(pop))
                     pop.append(improvisation[-1])
@@ -266,9 +272,13 @@ class Controller(object):
                     pop = compose(pop, mu=len(pop), selected=improvisation[-1])
 
                     durations, pitchs = zip(*[
-                        math.modf(note) for ind in improvisation + pop for note in ind
+                        math.modf(note) for ind in improvisation + pop for note
+                        in ind
                     ])
-                    notes = [Note().from_int(int(pitch)) for pitch in pitchs]
+                    notes = [
+                        None if pitch == 1000 else Note().from_int(int(pitch))
+                        for pitch in pitchs
+                    ]
                     durations = [
                         int(round(duration * 100)) for duration in durations
                     ]
@@ -281,7 +291,7 @@ class Controller(object):
 
                     visualize_log(log, fn="interact")
 
-                    fluidsynth.play_Track(track)
+                    fluidsynth.play_Track(track[len(improvisation):])
 
                 except KeyboardInterrupt:
                     pass

@@ -18,7 +18,7 @@ from mingus.containers.note import NoteFormatError, Note
 from mingus.containers.track import Track
 from mingus.midi import fluidsynth, midi_file_out
 
-from gamc import evolver, txtimg, abcparse, gen, cal
+from gamcs import evolver, txtimg, abcparse, gen, cal
 
 __author__ = "kissg"
 __date__ = "2017-04-13"
@@ -133,10 +133,10 @@ def visualize_log(log, fn="out"):
 
 class Controller(object):
     def __init__(self, soundfont="JR_elepiano",
-                 km_file="./gamc/statics/keymap.json", octave=4, meter="4/4",
+                 km_file="./gamcs/statics/keymap.json", octave=4, meter="4/4",
                  bpm=120):
         # initial fluidsynth
-        sf2 = os.path.join("gamc", "statics", "soundfonts",
+        sf2 = os.path.join("gamcs", "statics", "soundfonts",
                            soundfont if soundfont.endswith(
                                ".sf2") else soundfont + ".sf2")
         fluidsynth.init(sf2=sf2, driver="alsa")

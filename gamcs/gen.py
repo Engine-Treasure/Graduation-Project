@@ -6,6 +6,8 @@ from copy import deepcopy
 
 import numpy as np
 from deap import creator
+from mingus.containers.note import Note
+from mingus.containers.bar import Bar
 
 from statistics import duration_frequencies as duration_probability
 
@@ -79,3 +81,20 @@ def init_pop_from_seq(seq):
     if rest != 1.0:
         ls.append(deepcopy(bar))
     return ls
+
+
+def ind2bar(b):
+    durations, pitchs = zip(*[math.modf(note) for note in b])
+    notes = [
+        None if pitch == 1000 else Note().from_int(int(pitch))
+        for pitch in pitchs
+    ]
+    durations = [
+        int(round(duration * 100)) for duration in durations
+    ]
+
+    bar = Bar()
+    for note, duration in zip(notes, durations):
+        bar.place_notes(note, duration)
+
+    return bar

@@ -13,7 +13,7 @@ from send_email import send_email
 try:
     import abcparse
 except ImportError:
-    import gamc.abcparse as abcparse
+    import gamcs.abcparse as abcparse
 
 if not os.path.exists("ABCs"):
     os.makedirs("ABCs")

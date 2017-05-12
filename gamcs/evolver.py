@@ -20,8 +20,6 @@ import gen
 import mutation
 from txtimg import boom
 from mingus.midi import fluidsynth
-from mingus.containers.note import Note
-from mingus.containers.bar import Bar
 
 __author__ = "kissg"
 __date__ = "2017-03-10"
@@ -93,11 +91,11 @@ def evolve_bar_nc(pop=None, ngen=100, mu=100, cxpb=0.9, seed=None):
     pop = toolbox.select_bar(pop, len(pop))
 
     record = stats.compile(pop)
-    logbook.record(gen=0, evals=len(invalid_ind), **record)
+    logbook.record(g=0, evals=len(invalid_ind), **record)
     print(logbook.stream)
 
     # Begin the generational process
-    for gen in range(1, ngen):
+    for g in range(1, ngen):
         # Vary the population
         offspring = toolbox.preselect_bar(pop, len(pop))
         offspring = [toolbox.clone(ind) for ind in offspring]
@@ -120,7 +118,7 @@ def evolve_bar_nc(pop=None, ngen=100, mu=100, cxpb=0.9, seed=None):
         pop = toolbox.select_bar(pop + offspring, mu)
 
         record = stats.compile(pop)
-        logbook.record(gen=gen, evals=len(invalid_ind), **record)
+        logbook.record(gen=g, evals=len(invalid_ind), **record)
         print(logbook.stream)
 
     return pop, logbook
@@ -182,7 +180,7 @@ def evolve_bar_c(pop=None, ngen=100, mu=100, cxpb=0.9, seed=None, artisel=True):
     print(logbook.stream)
 
     # Begin the generational process
-    for gen in range(1, ngen):
+    for g in range(1, ngen):
         # Vary the population
         offspring = toolbox.preselect_bar(pop, len(pop))
         offspring = [toolbox.clone(ind) for ind in offspring]
@@ -207,35 +205,42 @@ def evolve_bar_c(pop=None, ngen=100, mu=100, cxpb=0.9, seed=None, artisel=True):
 
         if artisel:
             for b in tools.selRandom(pop, 10 if len(pop) > 10 else len(pop)):
-                bar = ind2bar(b)
-    while 1:
-        fluidsynth.play_Bar(bar)
-        key = click.getchar()
-        if key == u"g":
-            b.by_human = 1
-            return True
-        elif key == u"b":
-            return True
+                bar = gen.ind2bar(b)
 
+                while 1:
+                    fluidsynth.play_Bar(bar)
+                    key = click.getchar()
+                    if key == u"g":
+                        b.by_human = 1
+                        ARK.append(b)
+                        break
+                    elif key == u"b":
+                        break
+                    elif key == u"\x1b":  # Escape 键, 退出终止人工选择
+                        artisel = False
+                        break
+
+                if not artisel:
+                    break
 
         record = stats.compile(pop)
-        logbook.record(gen=gen, evals=len(invalid_ind), **record)
+        logbook.record(gen=g, evals=len(invalid_ind), **record)
         print(logbook.stream)
 
         # 以多样性为依据进行灾变
         if len(set([i.tostring() for i in pop])) <= mu:
-            if gen - CUR_G == 1:
-                CUR_G = gen
+            if g - CUR_G == 1:
+                CUR_G = g
                 CATASTROPHE -= 1
             else:  # 说明多样性得到恢复, 重置灾变倒计时
-                CUR_G = gen
+                CUR_G = g
                 CATASTROPHE = 5
 
                 # top_inds = tools.selBest(pop, SURVIVAL_SIZE)  # 更新 top
 
         if CATASTROPHE == 0:
             print(boom)  # 灾变发生的信号
-            SURVIVAL_SIZE = int(mu * gen / ngen)  # 环境容纳量, 即灾变发生后幸存者数
+            SURVIVAL_SIZE = int(mu * g/ ngen)  # 环境容纳量, 即灾变发生后幸存者数
             top_inds = sorted(pop, key=lambda ind: ind.fitness, reverse=True)[1:SURVIVAL_SIZE + 1]  # 近似最优解集合, 不包括最优解
 
             pop = toolbox.pop_bar(n=N - SURVIVAL_SIZE)  # 灾变的新生个体
@@ -259,24 +264,6 @@ def evolve_bar_c(pop=None, ngen=100, mu=100, cxpb=0.9, seed=None, artisel=True):
     fitnesses = toolbox.map(toolbox.evaluate_bar, invalid_ind)
     for ind, fit in zip(invalid_ind, fitnesses):
         ind.fitness.values = fit
-    pop = toolbox.select_bar(pop + offspring, mu)
+    pop = toolbox.select_bar(pop + offspring, mu - len(ARK))
 
-    return pop, logbook
-
-
-def ind2bar(b):
-    durations, pitchs = zip(*[math.modf(note) for note in b])
-    notes = [
-        None if pitch == 1000 else Note().from_int(int(pitch))
-        for pitch in pitchs
-    ]
-    durations = [
-        int(round(duration * 100)) for duration in durations
-    ]
-
-    bar = Bar()
-    for note, duration in zip(notes, durations):
-        bar.place_notes(note, duration)
-
-    return bar
-
+    return pop + ARK, logbook

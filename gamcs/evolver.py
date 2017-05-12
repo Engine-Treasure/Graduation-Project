@@ -126,19 +126,21 @@ def evolve_bar_nc(pop=None, ngen=100, mu=100, cxpb=0.9, seed=None):
     return pop, logbook
 
 
-def evolve_bar_c(pop=None, ngen=100, mu=100, cxpb=0.9, seed=None):
+def evolve_bar_c(pop=None, ngen=100, mu=100, cxpb=0.9, seed=None, artisel=True):
     """
     :param pop: 初始化种群, 若未给定, 将自动生成初始化种群
     :param ngen: 进化的最大代数
     :param mu: 种群大小, 实际进化采用的种群大小将以此为依据, 进行倍增
     :param cxpb: 交叉概率
+    :param artisel: 是否进行人工选择
     :param seed: 随机种子
     :return:
     """
     random.seed(seed)
 
     CATASTROPHE = 5     # 灾变倒数计时
-    CUR_G = 0             # 连续满足条件, 灾变倒计时才倒数. 该变量用于记录当前进化时间
+    CUR_G = 0           # 连续满足条件, 灾变倒计时才倒数. 该变量用于记录当前进化时间
+    ARK = []            # "诺亚方舟", 保存由人工评估选择的音乐小节
 
     # create and register statistics method
     stats = tools.Statistics(lambda ind: ind.fitness.values)
@@ -203,26 +205,18 @@ def evolve_bar_c(pop=None, ngen=100, mu=100, cxpb=0.9, seed=None):
         # pop = toolbox.select_bar(pop + offspring, mu)
         pop = toolbox.select_bar(pop + offspring, len(pop))
 
-        for b in tools.selRandom(pop, 10):
-            durations, pitchs = zip(*[math.modf(note) for note in b])
-            notes = [
-                None if pitch == 1000 else Note().from_int(int(pitch))
-                for pitch in pitchs
-            ]
-            durations = [
-                int(round(duration * 100)) for duration in durations
-            ]
-            bar = Bar()
-            for note, duration in zip(notes, durations):
-                bar.place_notes(note, duration)
-            while 1:
-                fluidsynth.play_Bar(bar)
-                key = click.getchar()
-                if key == u"g":
-                    b.by_human = 1
-                    break
-                elif key == u"b":
-                    break
+        if artisel:
+            for b in tools.selRandom(pop, 10 if len(pop) > 10 else len(pop)):
+                bar = ind2bar(b)
+    while 1:
+        fluidsynth.play_Bar(bar)
+        key = click.getchar()
+        if key == u"g":
+            b.by_human = 1
+            return True
+        elif key == u"b":
+            return True
+
 
         record = stats.compile(pop)
         logbook.record(gen=gen, evals=len(invalid_ind), **record)
@@ -268,3 +262,21 @@ def evolve_bar_c(pop=None, ngen=100, mu=100, cxpb=0.9, seed=None):
     pop = toolbox.select_bar(pop + offspring, mu)
 
     return pop, logbook
+
+
+def ind2bar(b):
+    durations, pitchs = zip(*[math.modf(note) for note in b])
+    notes = [
+        None if pitch == 1000 else Note().from_int(int(pitch))
+        for pitch in pitchs
+    ]
+    durations = [
+        int(round(duration * 100)) for duration in durations
+    ]
+
+    bar = Bar()
+    for note, duration in zip(notes, durations):
+        bar.place_notes(note, duration)
+
+    return bar
+

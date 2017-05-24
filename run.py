@@ -117,18 +117,32 @@ def after_composing(track, fn="out"):
 
 
 def visualize_log(log, fn="out"):
+
     fig = plt.figure()
 
-    plt.grid(True, 'major', 'y', ls='--', lw=0.5, c='k', alpha=0.3)
+    headers = ["avg", "max"]
+    objective = ["Chord", "Interval", "Duration", "Experience", "Range",
+                 "Length", "Change", "Diversity"]
 
-    headers = ["avg", "std", "min", "max"]
-    for header in headers:
-        plt.scatter(
-            np.arange(len(log.select(header))),
-            np.mean(np.array(log.select(header)), axis=1)
-        )
+    for i, header in enumerate(headers):
+        ax = fig.add_subplot(2, 1, i + 1)
+        for g in range(8):
+            ax.plot(
+                np.arange(len(log.select(header))),
+                np.array(log.select(header))[:, g],
+                # np.mean(np.array(log.select(header)), axis=1),
+                'o-',
+                label=objective[g]
+            )
+        ax.set_xlabel("Generation")
+        ax.set_ylabel("Fitness")
+        ax.set_title(header, fontsize=18)
+        ax.set_ylim(-0.05, 1.05)
+        ax.legend(loc="center left", bbox_to_anchor=(1.0, 0.5))
 
-    fig.savefig(fn if fn.endswith(".png") else fn + ".png")
+    plt.xticks(np.arange(len(log.select(header))))
+    plt.tight_layout()
+    fig.savefig(fn if fn.endswith(".png") else fn + ".png", bbox_inches="tight")
 
 
 class Controller(object):

@@ -30,8 +30,8 @@ int2name = {
 
 chord_score = {
     0: 0.2,  # 纯一度, 纯八度, 太协和, 也太空洞, 比刺激好一点
-    3: 1.0,  # 小三度
-    4: 0.9,  # 大三度
+    3: 0.9,  # 小三度
+    4: 1.0,  # 大三度
     5: 0.6,  # 纯四度
     7: 0.5,  # 纯五度
     8: 0.7,  # 小六度
@@ -83,8 +83,6 @@ def grade_interval(pitchs):
             result += 0.5 * score
         elif diff < 8:
             result += score
-        elif diff >= 16:  # 音程超过 16 度的, 0 分
-            return 0.0
         else:
             punishment += 1  # 音程在 [8, 16) 间的, 不得分, 但依据其出现次数评分
 

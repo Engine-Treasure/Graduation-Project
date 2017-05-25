@@ -32,8 +32,8 @@ chord_score = {
     0: 0.2,  # 纯一度, 纯八度, 太协和, 也太空洞, 比刺激好一点
     3: 0.9,  # 小三度
     4: 1.0,  # 大三度
-    5: 0.6,  # 纯四度
-    7: 0.5,  # 纯五度
+    5: 0.5,  # 纯四度
+    7: 0.3,  # 纯五度
     8: 0.7,  # 小六度
     9: 0.8   # 大六度
 }
@@ -146,7 +146,7 @@ def grade_markov(pitchs, markov=None):
             # 不给分, 也不作惩罚
             pass
         else:
-            result += (-1 / (1 + math.e ** (7 - rank / 2)) + 1) * score
+            result += (-1 / (1 + math.e ** (5 - rank / 2)) + 1) * score
 
     return result
 

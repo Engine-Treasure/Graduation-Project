@@ -140,7 +140,6 @@ def visualize_log(log, fn="out"):
         ax.set_ylim(-0.05, 1.05)
         ax.legend(loc="center left", bbox_to_anchor=(1.0, 0.5))
 
-    plt.xticks(np.arange(len(log.select(header))))
     plt.tight_layout()
     fig.savefig(fn if fn.endswith(".png") else fn + ".png", bbox_inches="tight")
 
@@ -170,6 +169,8 @@ class Controller(object):
         track = Track()
         for note in notes:
             track.add_notes(Note(*note[0]), duration=note[1])
+
+        after_composing(track)
 
         fluidsynth.play_Track(track)
 
@@ -208,6 +209,7 @@ class Controller(object):
 
         pop = gen.init_pop_from_seq(prepare_pop)
         pop, log = evolver.evolve_bar_nc(pop, ngen=ngen, mu=len(pop), cxpb=cxpb)
+        pop = compose(pop, mu=len(pop))
         print(len(set([i.tostring() for i in pop])) / len(pop))  # 查看最终小节多样性
 
         durations, pitchs = zip(
